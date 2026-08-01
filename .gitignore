@@ -5,6 +5,9 @@
 ## User settings
 xcuserdata/
 
+# XcodeGen-generated project (project.yml is the source of truth)
+*.xcodeproj
+
 ## Obj-C/Swift specific
 *.hmap
 
@@ -60,3 +63,14 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# AI-assistant-generated artifacts (planning docs, tool state — not project source)
+docs/
+CLAUDE.md
+.claude/
+
+# macOS Finder metadata
+.DS_Store
+
+# XcodeGen-generated Info.plist (project.yml is the source of truth)
+Mosaic/Info.plist

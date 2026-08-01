@@ -1,0 +1,47 @@
+name: Mosaic
+options:
+  bundleIdPrefix: com.shivaniparimi
+  deploymentTarget:
+    iOS: "18.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+targets:
+  Mosaic:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: Mosaic
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shivaniparimi.Mosaic
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: Mosaic/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIUserInterfaceStyle: Light
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+    scheme:
+      testTargets:
+        - MosaicTests
+      config:
+        Run: Debug
+        Test: Debug
+  MosaicTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: MosaicTests
+    dependencies:
+      - target: Mosaic
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.shivaniparimi.MosaicTests
+        GENERATE_INFOPLIST_FILE: "YES"
