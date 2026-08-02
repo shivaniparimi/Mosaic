@@ -10,6 +10,7 @@ struct TaskCard: View {
     var hasAttachments: Bool = false
     var isRecurring: Bool = false
     var onStopRepeating: (() -> Void)? = nil
+    var onMoveToToday: (() -> Void)? = nil
     let onToggleCompletion: () -> Void
 
     var body: some View {
@@ -65,6 +66,19 @@ struct TaskCard: View {
             }
 
             Spacer(minLength: 0)
+
+            if let onMoveToToday {
+                Button(action: onMoveToToday) {
+                    Image(systemName: "sun.max")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(MosaicColor.accent)
+                        .padding(8)
+                        .background(MosaicColor.accent.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Move to Today")
+            }
         }
         .padding(MosaicSpacing.md)
         .background(Color.white)

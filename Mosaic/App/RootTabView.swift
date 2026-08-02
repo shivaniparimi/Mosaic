@@ -4,6 +4,8 @@ struct RootTabView: View {
     @State private var router = TabRouter()
     @State private var tabBarHeight: CGFloat = 0
     @State private var isPresentingTaskCreation = false
+    @State private var isPresentingNewProject = false
+    @State private var inboxCount = 0
     @Environment(\.dependencies) private var dependencies
 
     var body: some View {
@@ -29,12 +31,17 @@ struct RootTabView: View {
 
             if router.isFABVisible(for: router.selectedTab) {
                 FloatingActionButton {
-                    isPresentingTaskCreation = true
+                    switch router.selectedTab {
+                    case .projects:
+                        isPresentingNewProject = true
+                    default:
+                        isPresentingTaskCreation = true
+                    }
                 }
                 .padding(.bottom, tabBarHeight + MosaicSpacing.md)
             }
 
-            FrostedTabBar(selectedTab: $router.selectedTab)
+            FrostedTabBar(selectedTab: $router.selectedTab, inboxCount: inboxCount)
                 .onGeometryChange(for: CGFloat.self) { proxy in
                     proxy.size.height
                 } action: { height in
@@ -45,6 +52,15 @@ struct RootTabView: View {
         .sheet(isPresented: $isPresentingTaskCreation) {
             TaskCreationSheet(viewModel: dependencies.makeTaskCreationViewModel())
         }
+        .sheet(isPresented: $isPresentingNewProject) {
+            NewProjectSheet(viewModel: dependencies.makeNewProjectViewModel())
+        }
+        .task {
+            refreshInboxCount()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .taskDataDidChange)) { _ in
+            refreshInboxCount()
+        }
     }
 
     @ViewBuilder
@@ -52,8 +68,16 @@ struct RootTabView: View {
         switch tab {
         case .today:
             TodayView(viewModel: dependencies.makeTodayViewModel())
+        case .inbox:
+            InboxView(viewModel: dependencies.makeInboxViewModel())
+        case .projects:
+            ProjectsView(viewModel: dependencies.makeProjectsViewModel())
         default:
             PlaceholderScreen(title: tab.title)
         }
+    }
+
+    private func refreshInboxCount() {
+        inboxCount = (try? dependencies.taskRepository.fetchInbox().count) ?? 0
     }
 }

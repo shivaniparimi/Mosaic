@@ -15,15 +15,25 @@ final class SwiftDataProjectRepository: ProjectRepository {
 
     func create(_ project: Project) throws {
         context.insert(project)
-        try context.save()
+        try save()
     }
 
     func update(_ project: Project) throws {
-        try context.save()
+        try save()
     }
 
     func delete(_ project: Project) throws {
         context.delete(project)
-        try context.save()
+        try save()
+    }
+
+    private func save() throws {
+        do {
+            try context.save()
+        } catch {
+            context.rollback()
+            throw error
+        }
+        NotificationCenter.default.post(name: .taskDataDidChange, object: nil)
     }
 }

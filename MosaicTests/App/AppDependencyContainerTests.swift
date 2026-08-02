@@ -61,4 +61,35 @@ struct AppDependencyContainerTests {
         let templates = try container.recurringTaskTemplateRepository.fetchAllActive()
         #expect(templates.count == 1)
     }
+
+    @Test func makeInboxViewModelBuildsWorkingViewModel() async throws {
+        let container = AppDependencyContainer.preview()
+        try container.taskRepository.create(TaskItem(title: "Smoke", capturedAt: .now))
+
+        let viewModel = container.makeInboxViewModel()
+        await viewModel.load()
+
+        #expect(viewModel.items.count == 1)
+    }
+
+    @Test func makeProjectsViewModelBuildsWorkingViewModel() async throws {
+        let container = AppDependencyContainer.preview()
+        try container.projectRepository.create(Project(name: "Smoke", colorHex: "#4C6EF5"))
+
+        let viewModel = container.makeProjectsViewModel()
+        await viewModel.load()
+
+        #expect(viewModel.projects.count == 1)
+    }
+
+    @Test func makeNewProjectViewModelBuildsWorkingViewModel() throws {
+        let container = AppDependencyContainer.preview()
+
+        let viewModel = container.makeNewProjectViewModel()
+        viewModel.name = "Smoke Project"
+        let created = viewModel.createProject()
+
+        #expect(created)
+        #expect(try container.projectRepository.fetchAll().count == 1)
+    }
 }

@@ -96,4 +96,16 @@ final class AppDependencyContainer {
             parsingService: naturalLanguageParsingService
         )
     }
+
+    func makeInboxViewModel() -> InboxViewModel {
+        InboxViewModel(taskRepository: taskRepository)
+    }
+
+    func makeProjectsViewModel() -> ProjectsViewModel {
+        ProjectsViewModel(projectRepository: projectRepository, taskRepository: taskRepository, aiInsightService: aiInsightService)
+    }
+
+    func makeNewProjectViewModel() -> NewProjectViewModel {
+        NewProjectViewModel(projectRepository: projectRepository)
+    }
 }
