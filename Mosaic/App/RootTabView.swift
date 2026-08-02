@@ -72,6 +72,8 @@ struct RootTabView: View {
             InboxView(viewModel: dependencies.makeInboxViewModel())
         case .projects:
             ProjectsView(viewModel: dependencies.makeProjectsViewModel())
+        case .search:
+            SearchView(viewModel: dependencies.makeSearchViewModel())
         default:
             PlaceholderScreen(title: tab.title)
         }

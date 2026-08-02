@@ -92,4 +92,14 @@ struct AppDependencyContainerTests {
         #expect(created)
         #expect(try container.projectRepository.fetchAll().count == 1)
     }
+
+    @Test func makeSearchViewModelBuildsWorkingViewModel() async throws {
+        let container = AppDependencyContainer.preview()
+        try container.taskRepository.create(TaskItem(title: "Design review"))
+
+        let viewModel = container.makeSearchViewModel()
+        await viewModel.applySearch(for: "design")
+
+        #expect(viewModel.taskResults.count == 1)
+    }
 }

@@ -108,4 +108,8 @@ final class AppDependencyContainer {
     func makeNewProjectViewModel() -> NewProjectViewModel {
         NewProjectViewModel(projectRepository: projectRepository)
     }
+
+    func makeSearchViewModel() -> SearchViewModel {
+        SearchViewModel(taskRepository: taskRepository, projectRepository: projectRepository, tagRepository: tagRepository)
+    }
 }
