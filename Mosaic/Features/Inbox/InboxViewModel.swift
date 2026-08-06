@@ -8,9 +8,11 @@ final class InboxViewModel {
     private(set) var errorMessage: String?
 
     private let taskRepository: TaskRepository
+    private let locationReminderService: LocationReminderService
 
-    init(taskRepository: TaskRepository) {
+    init(taskRepository: TaskRepository, locationReminderService: LocationReminderService) {
         self.taskRepository = taskRepository
+        self.locationReminderService = locationReminderService
     }
 
     var canCapture: Bool {
@@ -61,11 +63,20 @@ final class InboxViewModel {
     }
 
     func toggleCompletion(_ task: TaskItem) async {
+        let wasCompleted = task.isCompleted
         do {
             try taskRepository.toggleCompletion(task)
         } catch {
             errorMessage = "Couldn't update that task."
             return
+        }
+
+        if let reminderID = task.locationReminder?.id {
+            if !wasCompleted && task.isCompleted {
+                await locationReminderService.stopMonitoring(id: reminderID)
+            } else if wasCompleted && !task.isCompleted, let reminderInfo = LocationReminderInfo(task: task) {
+                await locationReminderService.startMonitoring(for: reminderInfo)
+            }
         }
 
         errorMessage = nil

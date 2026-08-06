@@ -127,4 +127,75 @@ struct SwiftDataTaskRepositoryTests {
         #expect(counter.value == 1)
         #expect(try repository.fetchAll().count == 3)
     }
+
+    @Test func addSubtaskAppendsToTaskAndPersists() throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let task = TaskItem(title: "Plan trip")
+        try repository.create(task)
+        let subtask = Subtask(title: "Book flights", sortOrder: 0)
+
+        try repository.addSubtask(subtask, to: task)
+
+        #expect(task.subtasks.count == 1)
+        #expect(task.subtasks.first?.title == "Book flights")
+        #expect(subtask.task === task)
+    }
+
+    @Test func toggleSubtaskCompletionFlipsState() throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let task = TaskItem(title: "Plan trip")
+        try repository.create(task)
+        let subtask = Subtask(title: "Book flights", sortOrder: 0)
+        try repository.addSubtask(subtask, to: task)
+
+        try repository.toggleSubtaskCompletion(subtask)
+
+        #expect(subtask.isCompleted)
+    }
+
+    @Test func deleteSubtaskRemovesItFromTheStoreEntirely() throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let task = TaskItem(title: "Plan trip")
+        try repository.create(task)
+        let subtask = Subtask(title: "Book flights", sortOrder: 0)
+        try repository.addSubtask(subtask, to: task)
+
+        try repository.deleteSubtask(subtask)
+
+        #expect(task.subtasks.isEmpty)
+        let remainingSubtasks = try container.mainContext.fetch(FetchDescriptor<Subtask>())
+        #expect(remainingSubtasks.isEmpty)
+    }
+
+    @Test func addAttachmentAppendsToTaskAndPersists() throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let task = TaskItem(title: "Plan trip")
+        try repository.create(task)
+        let attachment = TaskAttachment(kind: .photo, filename: "beach.jpg", fileSizeBytes: 1024, localURL: URL(fileURLWithPath: "/tmp/beach.jpg"))
+
+        try repository.addAttachment(attachment, to: task)
+
+        #expect(task.attachments.count == 1)
+        #expect(task.attachments.first?.filename == "beach.jpg")
+        #expect(attachment.task === task)
+    }
+
+    @Test func deleteAttachmentRemovesItFromTheStoreEntirely() throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let task = TaskItem(title: "Plan trip")
+        try repository.create(task)
+        let attachment = TaskAttachment(kind: .file, filename: "itinerary.pdf", fileSizeBytes: 2048, localURL: URL(fileURLWithPath: "/tmp/itinerary.pdf"))
+        try repository.addAttachment(attachment, to: task)
+
+        try repository.deleteAttachment(attachment)
+
+        #expect(task.attachments.isEmpty)
+        let remainingAttachments = try container.mainContext.fetch(FetchDescriptor<TaskAttachment>())
+        #expect(remainingAttachments.isEmpty)
+    }
 }

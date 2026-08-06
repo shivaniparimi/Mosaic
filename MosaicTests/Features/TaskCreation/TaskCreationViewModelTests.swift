@@ -14,7 +14,8 @@ struct TaskCreationViewModelTests {
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(
                 taskRepository: SwiftDataTaskRepository(context: context)
             ),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
     }
 
@@ -66,7 +67,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "design review @design"
@@ -91,7 +93,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "email Haley tomorrow at 2 PM"
@@ -117,7 +120,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "remind me call dentist"
@@ -130,6 +134,55 @@ struct TaskCreationViewModelTests {
         #expect(task.hasReminder == true)
     }
 
+    @Test func createTaskCapturesToInboxWhenNoDateDetectedAndCapturesToInboxIsTrue() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
+        let viewModel = TaskCreationViewModel(
+            taskRepository: taskRepository,
+            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
+            tagRepository: SwiftDataTagRepository(context: container.mainContext),
+            recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
+            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService(),
+            capturesToInbox: true
+        )
+
+        viewModel.inputText = "call dentist"
+        let created = await viewModel.createTask()
+        #expect(created)
+
+        let tasks = try taskRepository.fetchAll()
+        let task = try #require(tasks.first)
+        #expect(task.capturedAt != nil)
+        #expect(task.dueDate == nil)
+        #expect(task.origin == .quickCapture)
+    }
+
+    @Test func createTaskRespectsExplicitDateEvenWhenCapturesToInboxIsTrue() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
+        let viewModel = TaskCreationViewModel(
+            taskRepository: taskRepository,
+            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
+            tagRepository: SwiftDataTagRepository(context: container.mainContext),
+            recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
+            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService(),
+            capturesToInbox: true
+        )
+
+        viewModel.inputText = "call dentist tomorrow"
+        let created = await viewModel.createTask()
+        #expect(created)
+
+        let tasks = try taskRepository.fetchAll()
+        let task = try #require(tasks.first)
+        #expect(task.dueDate != nil)
+        #expect(task.capturedAt == nil)
+    }
+
     @Test func createTaskDerivesMorningBucketForEarlyTime() async throws {
         let container = TestModelContainer.makeInMemory()
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
@@ -139,7 +192,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "standup at 9 AM"
@@ -160,7 +214,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "buy milk"
@@ -198,7 +253,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "buy milk"
@@ -260,7 +316,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "walk dog mon wed fri"
@@ -305,7 +362,8 @@ struct TaskCreationViewModelTests {
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(
                 taskRepository: SwiftDataTaskRepository(context: container.mainContext)
             ),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "buy milk"
@@ -325,7 +383,8 @@ struct TaskCreationViewModelTests {
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(
                 taskRepository: SwiftDataTaskRepository(context: container.mainContext)
             ),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
         failingViewModel.inputText = "buy milk"
         _ = await failingViewModel.createTask()
@@ -348,7 +407,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "email Haley tomorrow at 2 PM"
@@ -369,7 +429,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "hot yoga 7-8pm mon wed fri"
@@ -396,7 +457,8 @@ struct TaskCreationViewModelTests {
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService()
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: RecordingNotificationService()
         )
 
         viewModel.inputText = "dentist appointment monday"
@@ -410,6 +472,31 @@ struct TaskCreationViewModelTests {
         #expect(tasks.count == 1)
         #expect(tasks.first?.recurringTemplate == nil)
     }
+
+    @Test func createTaskSchedulesReminderWhenTaskHasOne() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
+        let notificationService = RecordingNotificationService()
+        let viewModel = TaskCreationViewModel(
+            taskRepository: taskRepository,
+            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
+            tagRepository: SwiftDataTagRepository(context: container.mainContext),
+            recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
+            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
+            parsingService: DefaultNaturalLanguageParsingService(),
+            notificationService: notificationService
+        )
+
+        viewModel.inputText = "call mom tomorrow at 9am"
+        let created = await viewModel.createTask()
+        #expect(created)
+
+        try await Task.sleep(for: .milliseconds(50))
+
+        let tasks = try taskRepository.fetchAll()
+        let createdTask = try #require(tasks.first)
+        #expect(notificationService.scheduledTaskIDs == [createdTask.id])
+    }
 }
 
 @MainActor
@@ -422,4 +509,28 @@ private struct AlwaysFailingTaskRepository: TaskRepository {
     func delete(_ task: TaskItem) throws { }
     func toggleCompletion(_ task: TaskItem) throws { }
     func search(query: String) throws -> [TaskItem] { [] }
+    func addSubtask(_ subtask: Subtask, to task: TaskItem) throws { }
+    func toggleSubtaskCompletion(_ subtask: Subtask) throws { }
+    func deleteSubtask(_ subtask: Subtask) throws { }
+    func addAttachment(_ attachment: TaskAttachment, to task: TaskItem) throws { }
+    func deleteAttachment(_ attachment: TaskAttachment) throws { }
+}
+
+private final class RecordingNotificationService: NotificationService {
+    private(set) var scheduledTaskIDs: [UUID] = []
+    private(set) var cancelledTaskIDs: [UUID] = []
+
+    func requestAuthorization() async -> Bool { true }
+
+    func scheduleReminder(for reminder: TaskReminderInfo) async {
+        scheduledTaskIDs.append(reminder.id)
+    }
+
+    func cancelReminder(id: UUID) async {
+        cancelledTaskIDs.append(id)
+    }
+
+    func cancelAllReminders() async {}
+
+    func postLocationAlert(identifier: String, title: String, body: String) async {}
 }

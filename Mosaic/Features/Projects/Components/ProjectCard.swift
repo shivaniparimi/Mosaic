@@ -38,9 +38,7 @@ struct ProjectCard: View {
             .frame(height: 8)
         }
         .padding(MosaicSpacing.md)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
+        .mosaicCard()
         .contextMenu {
             Button("Delete Project", role: .destructive, action: onDelete)
         }

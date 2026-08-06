@@ -49,6 +49,23 @@ final class SwiftDataTaskRepository: TaskRepository {
         try save()
     }
 
+    func addSubtask(_ subtask: Subtask, to task: TaskItem) throws {
+        subtask.task = task
+        task.subtasks.append(subtask)
+        context.insert(subtask)
+        try save()
+    }
+
+    func toggleSubtaskCompletion(_ subtask: Subtask) throws {
+        subtask.isCompleted.toggle()
+        try save()
+    }
+
+    func deleteSubtask(_ subtask: Subtask) throws {
+        context.delete(subtask)
+        try save()
+    }
+
     func search(query: String) throws -> [TaskItem] {
         let predicate = #Predicate<TaskItem> { task in
             task.title.localizedStandardContains(query) ||
@@ -59,6 +76,18 @@ final class SwiftDataTaskRepository: TaskRepository {
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         return try context.fetch(descriptor)
+    }
+
+    func addAttachment(_ attachment: TaskAttachment, to task: TaskItem) throws {
+        attachment.task = task
+        task.attachments.append(attachment)
+        context.insert(attachment)
+        try save()
+    }
+
+    func deleteAttachment(_ attachment: TaskAttachment) throws {
+        context.delete(attachment)
+        try save()
     }
 
     private func save() throws {

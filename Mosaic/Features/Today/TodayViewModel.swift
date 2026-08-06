@@ -15,17 +15,20 @@ final class TodayViewModel {
     private let aiInsightService: AIInsightService
     private let recurringTaskTemplateRepository: RecurringTaskTemplateRepository
     private let recurringTaskGenerationService: RecurringTaskGenerationService
+    private let locationReminderService: LocationReminderService
 
     init(
         taskRepository: TaskRepository,
         aiInsightService: AIInsightService,
         recurringTaskTemplateRepository: RecurringTaskTemplateRepository,
-        recurringTaskGenerationService: RecurringTaskGenerationService
+        recurringTaskGenerationService: RecurringTaskGenerationService,
+        locationReminderService: LocationReminderService
     ) {
         self.taskRepository = taskRepository
         self.aiInsightService = aiInsightService
         self.recurringTaskTemplateRepository = recurringTaskTemplateRepository
         self.recurringTaskGenerationService = recurringTaskGenerationService
+        self.locationReminderService = locationReminderService
     }
 
     var totalCount: Int {
@@ -64,12 +67,22 @@ final class TodayViewModel {
     }
 
     func toggleCompletion(_ task: TaskItem) async {
+        let wasCompleted = task.isCompleted
         do {
             try taskRepository.toggleCompletion(task)
         } catch {
             errorMessage = "Couldn't update that task."
             return
         }
+
+        if let reminderID = task.locationReminder?.id {
+            if !wasCompleted && task.isCompleted {
+                await locationReminderService.stopMonitoring(id: reminderID)
+            } else if wasCompleted && !task.isCompleted, let reminderInfo = LocationReminderInfo(task: task) {
+                await locationReminderService.startMonitoring(for: reminderInfo)
+            }
+        }
+
         await load()
     }
 

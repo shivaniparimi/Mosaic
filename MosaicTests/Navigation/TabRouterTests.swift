@@ -27,4 +27,24 @@ struct TabRouterTests {
             #expect(router.path(for: tab).wrappedValue.isEmpty)
         }
     }
+
+    @Test func detailPresentedDefaultsToFalseForEveryTab() {
+        let router = TabRouter()
+        for tab in AppTab.allCases {
+            #expect(!router.isDetailPresented(for: tab))
+        }
+    }
+
+    @Test func setDetailPresentedTracksStatePerTabIndependently() {
+        let router = TabRouter()
+
+        router.setDetailPresented(true, for: .today)
+
+        #expect(router.isDetailPresented(for: .today))
+        #expect(!router.isDetailPresented(for: .inbox))
+
+        router.setDetailPresented(false, for: .today)
+
+        #expect(!router.isDetailPresented(for: .today))
+    }
 }

@@ -13,6 +13,13 @@ final class TaskCreationViewModel {
     private let recurringTaskTemplateRepository: RecurringTaskTemplateRepository
     private let recurringTaskGenerationService: RecurringTaskGenerationService
     private let parsingService: NaturalLanguageParsingService
+    private let notificationService: NotificationService
+    // When true, a one-off task created with no explicit date parsed from
+    // `inputText` becomes an Inbox capture (`capturedAt` set, no due date)
+    // instead of defaulting to today — matching what tapping "+" while
+    // looking at Inbox implies. An explicit date in the input (e.g. "buy
+    // milk tomorrow") always wins over this default.
+    private let capturesToInbox: Bool
     private var parseTask: Task<Void, Never>?
     private var lastParsedText: String?
 
@@ -22,7 +29,9 @@ final class TaskCreationViewModel {
         tagRepository: TagRepository,
         recurringTaskTemplateRepository: RecurringTaskTemplateRepository,
         recurringTaskGenerationService: RecurringTaskGenerationService,
-        parsingService: NaturalLanguageParsingService
+        parsingService: NaturalLanguageParsingService,
+        notificationService: NotificationService,
+        capturesToInbox: Bool = false
     ) {
         self.taskRepository = taskRepository
         self.projectRepository = projectRepository
@@ -30,6 +39,8 @@ final class TaskCreationViewModel {
         self.recurringTaskTemplateRepository = recurringTaskTemplateRepository
         self.recurringTaskGenerationService = recurringTaskGenerationService
         self.parsingService = parsingService
+        self.notificationService = notificationService
+        self.capturesToInbox = capturesToInbox
     }
 
     var canCreate: Bool {
@@ -166,19 +177,24 @@ final class TaskCreationViewModel {
 
     private func createSingleTask() -> Bool {
         let calendar = Calendar.current
-        let dueDate = draft?.date ?? calendar.startOfDay(for: .now)
-        let dueTime = draft?.timeComponents.flatMap {
-            calendar.date(bySettingHour: $0.hour, minute: $0.minute, second: 0, of: dueDate)
+        let isInboxCapture = capturesToInbox && draft?.date == nil
+        let dueDate = isInboxCapture ? nil : (draft?.date ?? calendar.startOfDay(for: .now))
+        let dueTime = dueDate.flatMap { date in
+            draft?.timeComponents.flatMap {
+                calendar.date(bySettingHour: $0.hour, minute: $0.minute, second: 0, of: date)
+            }
         }
 
         let matchedProject = draft?.projectName.flatMap { resolveProject(named: $0) }
 
         let task = TaskItem(
             title: draft?.cleanedTitle ?? inputText.trimmingCharacters(in: .whitespacesAndNewlines),
+            capturedAt: isInboxCapture ? .now : nil,
             dueDate: dueDate,
             dueTime: dueTime,
-            timeOfDay: Self.timeOfDay(forHour: draft?.timeComponents?.hour),
+            timeOfDay: dueDate == nil ? nil : Self.timeOfDay(forHour: draft?.timeComponents?.hour),
             hasReminder: draft?.hasReminder ?? false,
+            origin: isInboxCapture ? .quickCapture : .manual,
             project: matchedProject
         )
 
@@ -192,6 +208,9 @@ final class TaskCreationViewModel {
             errorMessage = "Couldn't create that task."
             return false
         }
+
+        let reminder = TaskReminderInfo(task: task)
+        Task { await notificationService.scheduleReminder(for: reminder) }
 
         errorMessage = nil
         return true

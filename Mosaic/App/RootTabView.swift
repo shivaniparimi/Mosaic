@@ -6,7 +6,16 @@ struct RootTabView: View {
     @State private var isPresentingTaskCreation = false
     @State private var isPresentingNewProject = false
     @State private var inboxCount = 0
+    @AppStorage(SettingsKeys.theme) private var themeRawValue: String = AppTheme.system.rawValue
     @Environment(\.dependencies) private var dependencies
+
+    private var colorScheme: ColorScheme? {
+        switch AppTheme(rawValue: themeRawValue) ?? .system {
+        case .light: .light
+        case .dark: .dark
+        case .system: nil
+        }
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -29,7 +38,7 @@ struct RootTabView: View {
                 .accessibilityHidden(router.selectedTab != tab)
             }
 
-            if router.isFABVisible(for: router.selectedTab) {
+            if router.isFABVisible(for: router.selectedTab) && !router.isDetailPresented(for: router.selectedTab) {
                 FloatingActionButton {
                     switch router.selectedTab {
                     case .projects:
@@ -48,15 +57,18 @@ struct RootTabView: View {
                     tabBarHeight = height
                 }
         }
+        .environment(\.tabRouter, router)
+        .preferredColorScheme(colorScheme)
         .animation(.easeInOut(duration: 0.18), value: router.selectedTab)
         .sheet(isPresented: $isPresentingTaskCreation) {
-            TaskCreationSheet(viewModel: dependencies.makeTaskCreationViewModel())
+            TaskCreationSheet(viewModel: dependencies.makeTaskCreationViewModel(capturesToInbox: router.selectedTab == .inbox))
         }
         .sheet(isPresented: $isPresentingNewProject) {
             NewProjectSheet(viewModel: dependencies.makeNewProjectViewModel())
         }
         .task {
             refreshInboxCount()
+            await dependencies.reregisterLocationReminders()
         }
         .onReceive(NotificationCenter.default.publisher(for: .taskDataDidChange)) { _ in
             refreshInboxCount()
@@ -74,8 +86,8 @@ struct RootTabView: View {
             ProjectsView(viewModel: dependencies.makeProjectsViewModel())
         case .search:
             SearchView(viewModel: dependencies.makeSearchViewModel())
-        default:
-            PlaceholderScreen(title: tab.title)
+        case .settings:
+            SettingsView(viewModel: dependencies.makeSettingsViewModel())
         }
     }
 

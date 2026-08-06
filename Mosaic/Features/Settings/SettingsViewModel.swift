@@ -1,0 +1,81 @@
+import Foundation
+
+@Observable
+@MainActor
+final class SettingsViewModel {
+    var theme: AppTheme {
+        didSet { userDefaults.set(theme.rawValue, forKey: SettingsKeys.theme) }
+    }
+    var notificationsEnabled: Bool {
+        didSet { userDefaults.set(notificationsEnabled, forKey: SettingsKeys.notificationsEnabled) }
+    }
+    var aiInsightsEnabled: Bool {
+        didSet { userDefaults.set(aiInsightsEnabled, forKey: SettingsKeys.aiInsightsEnabled) }
+    }
+    var defaultRemindersEnabled: Bool {
+        didSet { userDefaults.set(defaultRemindersEnabled, forKey: SettingsKeys.defaultRemindersEnabled) }
+    }
+
+    let appVersion: String
+    let buildNumber: String
+
+    private let userDefaults: UserDefaults
+    private let notificationService: NotificationService
+    private let taskRepository: TaskRepository
+    // Tracks the last `notificationsEnabled` value this method has actually
+    // acted on. `handleNotificationsToggleChanged()` reverting the toggle on
+    // denial mutates `notificationsEnabled` itself, which re-triggers
+    // SettingsView's `.onChange` and schedules a second, redundant call. This
+    // guard makes that second call a no-op instead of spuriously firing
+    // `cancelAllReminders()` — the value is updated synchronously alongside
+    // the revert, before any suspension point, so there's no race window.
+    private var lastHandledNotificationsEnabled: Bool?
+
+    init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main, notificationService: NotificationService, taskRepository: TaskRepository) {
+        self.userDefaults = userDefaults
+        self.theme = AppTheme(rawValue: userDefaults.string(forKey: SettingsKeys.theme) ?? "") ?? .system
+        self.notificationsEnabled = (userDefaults.object(forKey: SettingsKeys.notificationsEnabled) as? Bool) ?? false
+        self.aiInsightsEnabled = (userDefaults.object(forKey: SettingsKeys.aiInsightsEnabled) as? Bool) ?? true
+        self.defaultRemindersEnabled = (userDefaults.object(forKey: SettingsKeys.defaultRemindersEnabled) as? Bool) ?? false
+        self.appVersion = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
+        self.buildNumber = bundle.infoDictionary?["CFBundleVersion"] as? String ?? "1"
+        self.notificationService = notificationService
+        self.taskRepository = taskRepository
+    }
+
+    func handleNotificationsToggleChanged() async {
+        let currentValue = notificationsEnabled
+        guard lastHandledNotificationsEnabled != currentValue else { return }
+
+        guard currentValue else {
+            lastHandledNotificationsEnabled = false
+            await notificationService.cancelAllReminders()
+            return
+        }
+
+        let granted = await notificationService.requestAuthorization()
+        guard granted else {
+            notificationsEnabled = false
+            lastHandledNotificationsEnabled = false
+            return
+        }
+
+        lastHandledNotificationsEnabled = true
+        await rescheduleAllReminders()
+    }
+
+    // Every existing task's reminder was cancelled the last time this toggle
+    // went off (handleNotificationsToggleChanged's cancelAllReminders call).
+    // Turning it back on has to re-establish them, or a user who ever
+    // toggles it off then on again silently loses every reminder for good.
+    // scheduleReminder(for:) already re-derives whether each task is
+    // actually eligible, so this can call it unconditionally per task rather
+    // than duplicating that gate here.
+    private func rescheduleAllReminders() async {
+        guard let tasks = try? taskRepository.fetchAll() else { return }
+        for task in tasks {
+            let reminder = TaskReminderInfo(task: task)
+            await notificationService.scheduleReminder(for: reminder)
+        }
+    }
+}

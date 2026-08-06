@@ -8,7 +8,8 @@ struct TodayViewModelTests {
     private func makeViewModel(
         context: ModelContext,
         taskRepository: TaskRepository,
-        aiInsightService: AIInsightService
+        aiInsightService: AIInsightService,
+        locationReminderService: LocationReminderService = RecordingLocationReminderService()
     ) -> TodayViewModel {
         TodayViewModel(
             taskRepository: taskRepository,
@@ -16,7 +17,8 @@ struct TodayViewModelTests {
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: context),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(
                 taskRepository: SwiftDataTaskRepository(context: context)
-            )
+            ),
+            locationReminderService: locationReminderService
         )
     }
 
@@ -207,7 +209,8 @@ struct TodayViewModelTests {
             taskRepository: repository,
             aiInsightService: StubAIInsightService(insight: nil),
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
-            recurringTaskGenerationService: generationService
+            recurringTaskGenerationService: generationService,
+            locationReminderService: RecordingLocationReminderService()
         )
         await viewModel.load()
 
@@ -231,7 +234,8 @@ struct TodayViewModelTests {
             taskRepository: repository,
             aiInsightService: StubAIInsightService(insight: nil),
             recurringTaskTemplateRepository: templateRepository,
-            recurringTaskGenerationService: generationService
+            recurringTaskGenerationService: generationService,
+            locationReminderService: RecordingLocationReminderService()
         )
         await viewModel.load()
         let occurrence = try #require(
@@ -272,6 +276,50 @@ struct TodayViewModelTests {
         #expect(viewModel.errorMessage == nil)
         #expect(try repository.fetchAll().count == 1)
     }
+
+    @Test func toggleCompletionStopsLocationMonitoringWhenCompletingATaskWithALocationReminder() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let reminder = LocationReminder(name: "Home", address: "123 Main St", latitude: 37.0, longitude: -122.0, trigger: .arriving)
+        let task = TaskItem(title: "Water plants", dueDate: .now)
+        task.locationReminder = reminder
+        try repository.create(task)
+
+        let locationService = RecordingLocationReminderService()
+        let viewModel = makeViewModel(
+            context: container.mainContext,
+            taskRepository: repository,
+            aiInsightService: StubAIInsightService(insight: nil),
+            locationReminderService: locationService
+        )
+        await viewModel.load()
+
+        await viewModel.toggleCompletion(task)
+
+        #expect(locationService.stoppedReminderIDs == [reminder.id])
+    }
+
+    @Test func toggleCompletionResumesLocationMonitoringWhenUncompletingATaskWithALocationReminder() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let reminder = LocationReminder(name: "Home", address: "123 Main St", latitude: 37.0, longitude: -122.0, trigger: .arriving)
+        let task = TaskItem(title: "Water plants", isCompleted: true, dueDate: .now)
+        task.locationReminder = reminder
+        try repository.create(task)
+
+        let locationService = RecordingLocationReminderService()
+        let viewModel = makeViewModel(
+            context: container.mainContext,
+            taskRepository: repository,
+            aiInsightService: StubAIInsightService(insight: nil),
+            locationReminderService: locationService
+        )
+        await viewModel.load()
+
+        await viewModel.toggleCompletion(task)
+
+        #expect(locationService.startedReminderIDs == [reminder.id])
+    }
 }
 
 private struct StubAIInsightService: AIInsightService {
@@ -285,5 +333,24 @@ private final class RecordingAIInsightService: AIInsightService {
     func generateInsight(for tasks: [TaskItem]) async -> AIInsight? {
         lastTaskCount = tasks.count
         return AIInsight(message: "\(tasks.count) remaining")
+    }
+}
+
+private final class RecordingLocationReminderService: LocationReminderService {
+    private(set) var startedReminderIDs: [UUID] = []
+    private(set) var stoppedReminderIDs: [UUID] = []
+
+    func requestAuthorization() async -> Bool { true }
+
+    func startMonitoring(for reminder: LocationReminderInfo) async {
+        startedReminderIDs.append(reminder.reminderID)
+    }
+
+    func stopMonitoring(id: UUID) async {
+        stoppedReminderIDs.append(id)
+    }
+
+    func reregisterAll(reminders: [LocationReminderInfo]) async {
+        for reminder in reminders { startedReminderIDs.append(reminder.reminderID) }
     }
 }

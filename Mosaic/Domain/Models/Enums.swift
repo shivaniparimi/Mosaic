@@ -14,6 +14,15 @@ enum AttachmentKind: String, Codable {
     case photo, pdf, file
 }
 
-enum LocationTrigger: String, Codable {
+enum LocationTrigger: String, Codable, CaseIterable, Identifiable {
     case arriving, leaving
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .arriving: "Arriving"
+        case .leaving: "Leaving"
+        }
+    }
 }

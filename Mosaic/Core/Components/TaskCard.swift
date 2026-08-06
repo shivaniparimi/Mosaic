@@ -11,6 +11,7 @@ struct TaskCard: View {
     var isRecurring: Bool = false
     var onStopRepeating: (() -> Void)? = nil
     var onMoveToToday: (() -> Void)? = nil
+    var onTap: (() -> Void)? = nil
     let onToggleCompletion: () -> Void
 
     var body: some View {
@@ -30,6 +31,46 @@ struct TaskCard: View {
             }
             .buttonStyle(.plain)
 
+            content
+
+            if let onMoveToToday {
+                Button(action: onMoveToToday) {
+                    Image(systemName: "sun.max")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(MosaicColor.accent)
+                        .padding(8)
+                        .background(MosaicColor.accent.opacity(0.12))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Move to Today")
+            }
+        }
+        .padding(MosaicSpacing.md)
+        .mosaicCard()
+        .contextMenu {
+            if isRecurring, let onStopRepeating {
+                Button("Stop Repeating", role: .destructive) {
+                    onStopRepeating()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let onTap {
+            Button(action: onTap) {
+                rowContent
+            }
+            .buttonStyle(.plain)
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
+        HStack {
             VStack(alignment: .leading, spacing: MosaicSpacing.xs) {
                 Text(title)
                     .font(.system(size: 16, weight: .medium))
@@ -66,30 +107,6 @@ struct TaskCard: View {
             }
 
             Spacer(minLength: 0)
-
-            if let onMoveToToday {
-                Button(action: onMoveToToday) {
-                    Image(systemName: "sun.max")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(MosaicColor.accent)
-                        .padding(8)
-                        .background(MosaicColor.accent.opacity(0.12))
-                        .clipShape(Circle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Move to Today")
-            }
-        }
-        .padding(MosaicSpacing.md)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
-        .contextMenu {
-            if isRecurring, let onStopRepeating {
-                Button("Stop Repeating", role: .destructive) {
-                    onStopRepeating()
-                }
-            }
         }
     }
 }

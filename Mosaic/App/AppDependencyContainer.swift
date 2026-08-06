@@ -10,6 +10,9 @@ final class AppDependencyContainer {
     let aiInsightService: AIInsightService
     let naturalLanguageParsingService: NaturalLanguageParsingService
     let recurringTaskGenerationService: RecurringTaskGenerationService
+    let notificationService: NotificationService
+    let locationReminderService: LocationReminderService
+    let attachmentStorageService: AttachmentStorageService
 
     init(
         modelContainer: ModelContainer,
@@ -19,7 +22,10 @@ final class AppDependencyContainer {
         recurringTaskTemplateRepository: RecurringTaskTemplateRepository,
         aiInsightService: AIInsightService,
         naturalLanguageParsingService: NaturalLanguageParsingService,
-        recurringTaskGenerationService: RecurringTaskGenerationService
+        recurringTaskGenerationService: RecurringTaskGenerationService,
+        notificationService: NotificationService,
+        locationReminderService: LocationReminderService,
+        attachmentStorageService: AttachmentStorageService
     ) {
         self.modelContainer = modelContainer
         self.taskRepository = taskRepository
@@ -29,6 +35,9 @@ final class AppDependencyContainer {
         self.aiInsightService = aiInsightService
         self.naturalLanguageParsingService = naturalLanguageParsingService
         self.recurringTaskGenerationService = recurringTaskGenerationService
+        self.notificationService = notificationService
+        self.locationReminderService = locationReminderService
+        self.attachmentStorageService = attachmentStorageService
     }
 
     static func live() -> AppDependencyContainer {
@@ -41,6 +50,8 @@ final class AppDependencyContainer {
         }
         let context = container.mainContext
         let taskRepository = SwiftDataTaskRepository(context: context)
+        let notificationService = UserNotificationService()
+        let attachmentStorageService = FileManagerAttachmentStorageService()
 
         return AppDependencyContainer(
             modelContainer: container,
@@ -50,7 +61,10 @@ final class AppDependencyContainer {
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: context),
             aiInsightService: DefaultAIInsightService(),
             naturalLanguageParsingService: DefaultNaturalLanguageParsingService(),
-            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository)
+            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
+            notificationService: notificationService,
+            locationReminderService: CLLocationReminderService(taskRepository: taskRepository, notificationService: notificationService),
+            attachmentStorageService: attachmentStorageService
         )
     }
 
@@ -64,6 +78,8 @@ final class AppDependencyContainer {
         )
         let context = container.mainContext
         let taskRepository = SwiftDataTaskRepository(context: context)
+        let notificationService = UserNotificationService()
+        let attachmentStorageService = FileManagerAttachmentStorageService()
 
         return AppDependencyContainer(
             modelContainer: container,
@@ -73,7 +89,10 @@ final class AppDependencyContainer {
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: context),
             aiInsightService: DefaultAIInsightService(),
             naturalLanguageParsingService: DefaultNaturalLanguageParsingService(),
-            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository)
+            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
+            notificationService: notificationService,
+            locationReminderService: CLLocationReminderService(taskRepository: taskRepository, notificationService: notificationService),
+            attachmentStorageService: attachmentStorageService
         )
     }
 
@@ -82,23 +101,26 @@ final class AppDependencyContainer {
             taskRepository: taskRepository,
             aiInsightService: aiInsightService,
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
-            recurringTaskGenerationService: recurringTaskGenerationService
+            recurringTaskGenerationService: recurringTaskGenerationService,
+            locationReminderService: locationReminderService
         )
     }
 
-    func makeTaskCreationViewModel() -> TaskCreationViewModel {
+    func makeTaskCreationViewModel(capturesToInbox: Bool = false) -> TaskCreationViewModel {
         TaskCreationViewModel(
             taskRepository: taskRepository,
             projectRepository: projectRepository,
             tagRepository: tagRepository,
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: recurringTaskGenerationService,
-            parsingService: naturalLanguageParsingService
+            parsingService: naturalLanguageParsingService,
+            notificationService: notificationService,
+            capturesToInbox: capturesToInbox
         )
     }
 
     func makeInboxViewModel() -> InboxViewModel {
-        InboxViewModel(taskRepository: taskRepository)
+        InboxViewModel(taskRepository: taskRepository, locationReminderService: locationReminderService)
     }
 
     func makeProjectsViewModel() -> ProjectsViewModel {
@@ -111,5 +133,27 @@ final class AppDependencyContainer {
 
     func makeSearchViewModel() -> SearchViewModel {
         SearchViewModel(taskRepository: taskRepository, projectRepository: projectRepository, tagRepository: tagRepository)
+    }
+
+    func makeSettingsViewModel() -> SettingsViewModel {
+        SettingsViewModel(notificationService: notificationService, taskRepository: taskRepository)
+    }
+
+    func makeTaskDetailViewModel(task: TaskItem) -> TaskDetailViewModel {
+        TaskDetailViewModel(task: task, taskRepository: taskRepository, projectRepository: projectRepository, tagRepository: tagRepository, notificationService: notificationService, locationReminderService: locationReminderService, attachmentStorageService: attachmentStorageService)
+    }
+
+    func reregisterLocationReminders() async {
+        let tasks = (try? taskRepository.fetchAll()) ?? []
+        await locationReminderService.reregisterAll(reminders: Self.eligibleLocationReminders(from: tasks))
+    }
+
+    // Completing a task already stops its monitoring (TodayViewModel/
+    // InboxViewModel.toggleCompletion). Without this filter, a completed
+    // task's region gets silently re-registered on every launch — the
+    // user gets an arrival/departure alert for a task they already
+    // finished, and it occupies a slot against iOS's 20-region cap.
+    static func eligibleLocationReminders(from tasks: [TaskItem]) -> [LocationReminderInfo] {
+        tasks.filter { !$0.isCompleted }.compactMap { LocationReminderInfo(task: $0) }
     }
 }

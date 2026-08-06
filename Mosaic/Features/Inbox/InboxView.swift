@@ -3,6 +3,9 @@ import SwiftUI
 struct InboxView: View {
     @State private var viewModel: InboxViewModel
     @FocusState private var isCaptureFocused: Bool
+    @State private var selectedTask: TaskItem?
+    @Environment(\.dependencies) private var dependencies
+    @Environment(\.tabRouter) private var router
 
     init(viewModel: InboxViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -31,6 +34,12 @@ struct InboxView: View {
             .padding(MosaicSpacing.md)
         }
         .background(MosaicColor.canvas)
+        .navigationDestination(item: $selectedTask) { task in
+            TaskDetailView(viewModel: dependencies.makeTaskDetailViewModel(task: task))
+        }
+        .onChange(of: selectedTask) { _, newValue in
+            router.setDetailPresented(newValue != nil, for: .inbox)
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             Text("Inbox")
                 .font(.system(size: 34, weight: .bold))
@@ -53,7 +62,7 @@ struct InboxView: View {
             .font(.system(size: 16))
             .focused($isCaptureFocused)
             .padding(MosaicSpacing.md)
-            .background(Color.white)
+            .background(MosaicColor.surface)
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .onSubmit {
                 Task { await viewModel.capture() }
@@ -68,6 +77,7 @@ struct InboxView: View {
             onMoveToToday: {
                 Task { await viewModel.moveToToday(task) }
             },
+            onTap: { selectedTask = task },
             onToggleCompletion: {
                 Task { await viewModel.toggleCompletion(task) }
             }

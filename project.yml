@@ -24,9 +24,10 @@ targets:
       path: Mosaic/Info.plist
       properties:
         UILaunchScreen: {}
-        UIUserInterfaceStyle: Light
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        NSLocationWhenInUseUsageDescription: "Mosaic uses your location to remind you about tasks when you arrive at or leave a place you've chosen, like home or work."
+        NSLocationAlwaysAndWhenInUseUsageDescription: "Mosaic uses your location to remind you about tasks when you arrive at or leave a place you've chosen, even when the app isn't open."
     scheme:
       testTargets:
         - MosaicTests

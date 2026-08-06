@@ -22,7 +22,7 @@ struct SearchField: View {
             }
         }
         .padding(MosaicSpacing.md)
-        .background(Color.white)
+        .background(MosaicColor.surface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 }

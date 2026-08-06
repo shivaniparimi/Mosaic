@@ -102,4 +102,53 @@ struct AppDependencyContainerTests {
 
         #expect(viewModel.taskResults.count == 1)
     }
+
+    @Test func makeTaskDetailViewModelBuildsWorkingViewModel() throws {
+        let container = AppDependencyContainer.preview()
+        let task = TaskItem(title: "Smoke")
+        try container.taskRepository.create(task)
+
+        let viewModel = container.makeTaskDetailViewModel(task: task)
+        viewModel.setPriority(.high)
+
+        #expect(task.priority == .high)
+    }
+
+    @Test func makeSettingsViewModelBuildsWorkingViewModel() {
+        let container = AppDependencyContainer.preview()
+        UserDefaults.standard.removeObject(forKey: SettingsKeys.theme)
+
+        let viewModel = container.makeSettingsViewModel()
+
+        #expect(viewModel.theme == .system)
+    }
+
+    @Test func previewContainerWiresNotificationService() {
+        let container = AppDependencyContainer.preview()
+        #expect(container.notificationService is UserNotificationService)
+    }
+
+    @Test func previewContainerWiresLocationReminderService() {
+        let container = AppDependencyContainer.preview()
+        #expect(container.locationReminderService is CLLocationReminderService)
+    }
+
+    @Test func eligibleLocationRemindersExcludesCompletedTasks() {
+        let activeReminder = LocationReminder(name: "Home", address: "123 Main St", latitude: 37.0, longitude: -122.0, trigger: .arriving)
+        let activeTask = TaskItem(title: "Water plants")
+        activeTask.locationReminder = activeReminder
+
+        let completedReminder = LocationReminder(name: "Office", address: "456 Elm St", latitude: 37.1, longitude: -122.1, trigger: .leaving)
+        let completedTask = TaskItem(title: "Submit report", isCompleted: true)
+        completedTask.locationReminder = completedReminder
+
+        let reminders = AppDependencyContainer.eligibleLocationReminders(from: [activeTask, completedTask])
+
+        #expect(reminders.map(\.reminderID) == [activeReminder.id])
+    }
+
+    @Test func previewContainerWiresAttachmentStorageService() {
+        let container = AppDependencyContainer.preview()
+        #expect(container.attachmentStorageService is FileManagerAttachmentStorageService)
+    }
 }

@@ -2,6 +2,9 @@ import SwiftUI
 
 struct SearchView: View {
     @State private var viewModel: SearchViewModel
+    @State private var selectedTask: TaskItem?
+    @Environment(\.dependencies) private var dependencies
+    @Environment(\.tabRouter) private var router
 
     init(viewModel: SearchViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -28,6 +31,12 @@ struct SearchView: View {
             .padding(MosaicSpacing.md)
         }
         .background(MosaicColor.canvas)
+        .navigationDestination(item: $selectedTask) { task in
+            TaskDetailView(viewModel: dependencies.makeTaskDetailViewModel(task: task))
+        }
+        .onChange(of: selectedTask) { _, newValue in
+            router.setDetailPresented(newValue != nil, for: .search)
+        }
         .safeAreaInset(edge: .top, spacing: 0) {
             Text("Search")
                 .font(.system(size: 34, weight: .bold))
@@ -124,6 +133,7 @@ struct SearchView: View {
                         projectColor: task.project.map { Color(hex: $0.colorHex) },
                         hasReminder: task.hasReminder,
                         hasAttachments: !task.attachments.isEmpty,
+                        onTap: { selectedTask = task },
                         onToggleCompletion: {}
                     )
                 }
@@ -143,7 +153,7 @@ struct SearchView: View {
                         Spacer()
                     }
                     .padding(MosaicSpacing.md)
-                    .background(Color.white)
+                    .background(MosaicColor.surface)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
                 }

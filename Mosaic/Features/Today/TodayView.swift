@@ -3,6 +3,9 @@ import SwiftUI
 struct TodayView: View {
     @State private var viewModel: TodayViewModel
     @Environment(\.scenePhase) private var scenePhase
+    @State private var selectedTask: TaskItem?
+    @Environment(\.dependencies) private var dependencies
+    @Environment(\.tabRouter) private var router
 
     init(viewModel: TodayViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -29,6 +32,15 @@ struct TodayView: View {
             .padding(MosaicSpacing.md)
         }
         .background(MosaicColor.canvas)
+        .navigationDestination(item: $selectedTask) { task in
+            TaskDetailView(viewModel: dependencies.makeTaskDetailViewModel(task: task))
+        }
+        // `.navigationDestination(item:)` pushes are not reflected back into
+        // `TabRouter`'s bound NavigationPath, so the FAB's visibility (owned by
+        // RootTabView) can't infer presentation from the path alone. Report it here.
+        .onChange(of: selectedTask) { _, newValue in
+            router.setDetailPresented(newValue != nil, for: .today)
+        }
         // Pinning the header as a top safe-area inset keeps scrolled content from
         // rendering under the status bar / Dynamic Island: the ScrollView's content
         // is inset below the header, and the header's background extends up through
@@ -138,6 +150,7 @@ struct TodayView: View {
             onStopRepeating: task.recurringTemplate != nil ? {
                 Task { await viewModel.stopRepeating(task) }
             } : nil,
+            onTap: { selectedTask = task },
             onToggleCompletion: {
                 Task {
                     await viewModel.toggleCompletion(task)

@@ -17,7 +17,7 @@ struct ProjectFilterChip: View {
             }
             .padding(.horizontal, MosaicSpacing.sm)
             .padding(.vertical, MosaicSpacing.xs)
-            .background(isSelected ? Color(hex: colorHex).opacity(0.15) : Color.white)
+            .background(isSelected ? Color(hex: colorHex).opacity(0.15) : MosaicColor.surface)
             .clipShape(Capsule())
             .overlay(
                 Capsule().stroke(

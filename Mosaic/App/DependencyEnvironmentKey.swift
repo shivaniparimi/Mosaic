@@ -21,3 +21,20 @@ extension EnvironmentValues {
         set { self[AppDependencyContainerKey.self] = newValue }
     }
 }
+
+private struct TabRouterKey: EnvironmentKey {
+    // Same reasoning as `AppDependencyContainerKey` above: TabRouter is
+    // @MainActor-isolated, but EnvironmentKey requires a nonisolated defaultValue.
+    nonisolated(unsafe) static let defaultValue: TabRouter = {
+        MainActor.assumeIsolated {
+            TabRouter()
+        }
+    }()
+}
+
+extension EnvironmentValues {
+    var tabRouter: TabRouter {
+        get { self[TabRouterKey.self] }
+        set { self[TabRouterKey.self] = newValue }
+    }
+}
