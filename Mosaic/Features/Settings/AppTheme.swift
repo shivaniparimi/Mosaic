@@ -1,5 +1,5 @@
 enum AppTheme: String, CaseIterable, Identifiable {
-    case light, dark, system
+    case light, dark
 
     var id: String { rawValue }
 
@@ -7,7 +7,6 @@ enum AppTheme: String, CaseIterable, Identifiable {
         switch self {
         case .light: "Light"
         case .dark: "Dark"
-        case .system: "System"
         }
     }
 }

@@ -5,6 +5,7 @@ struct UpcomingView: View {
     @State private var selectedTask: TaskItem?
     @State private var selectedEvent: CalendarEvent?
     @AppStorage(SettingsKeys.calendarSyncEnabled) private var calendarSyncEnabled = false
+    @AppStorage(SettingsKeys.reminderSyncEnabled) private var reminderSyncEnabled = false
     @Environment(\.dependencies) private var dependencies
     @Environment(\.tabRouter) private var router
 
@@ -58,6 +59,9 @@ struct UpcomingView: View {
             Task { await viewModel.load() }
         }
         .onChange(of: calendarSyncEnabled) { _, _ in
+            Task { await viewModel.load() }
+        }
+        .onChange(of: reminderSyncEnabled) { _, _ in
             Task { await viewModel.load() }
         }
     }
@@ -125,6 +129,11 @@ struct UpcomingView: View {
                 title: event.title,
                 timeLabel: Self.eventTimeLabel(for: event),
                 onTap: { selectedEvent = event }
+            )
+        case .reminder(let reminder):
+            ReminderRow(
+                title: reminder.title,
+                timeLabel: reminder.hasTime ? Self.timeFormatter.string(from: reminder.dueDate) : nil
             )
         }
     }

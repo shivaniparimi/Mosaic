@@ -5,14 +5,13 @@ struct RootTabView: View {
     @State private var tabBarHeight: CGFloat = 0
     @State private var isPresentingTaskCreation = false
     @State private var inboxCount = 0
-    @AppStorage(SettingsKeys.theme) private var themeRawValue: String = AppTheme.system.rawValue
+    @AppStorage(SettingsKeys.theme) private var themeRawValue: String = AppTheme.light.rawValue
     @Environment(\.dependencies) private var dependencies
 
     private var colorScheme: ColorScheme? {
-        switch AppTheme(rawValue: themeRawValue) ?? .system {
+        switch AppTheme(rawValue: themeRawValue) ?? .light {
         case .light: .light
         case .dark: .dark
-        case .system: nil
         }
     }
 

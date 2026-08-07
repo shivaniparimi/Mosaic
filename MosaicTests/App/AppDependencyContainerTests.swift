@@ -97,7 +97,7 @@ struct AppDependencyContainerTests {
 
         let viewModel = container.makeSettingsViewModel()
 
-        #expect(viewModel.theme == .system)
+        #expect(viewModel.theme == .light)
     }
 
     @Test func previewContainerWiresNotificationService() {

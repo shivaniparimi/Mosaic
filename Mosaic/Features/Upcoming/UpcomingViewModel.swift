@@ -3,11 +3,13 @@ import Foundation
 enum UpcomingItem: Identifiable {
     case task(TaskItem)
     case event(CalendarEvent)
+    case reminder(ReminderItem)
 
     var id: AnyHashable {
         switch self {
         case .task(let task): task.id
         case .event(let event): event.id
+        case .reminder(let reminder): reminder.id
         }
     }
 }
@@ -28,6 +30,7 @@ final class UpcomingViewModel {
     private let taskRepository: TaskRepository
     private let locationReminderService: LocationReminderService
     private let calendarSyncService: CalendarSyncService
+    private let reminderSyncService: ReminderSyncService
     private let userDefaults: UserDefaults
 
     private static let eventLookaheadDays = 90
@@ -36,11 +39,13 @@ final class UpcomingViewModel {
         taskRepository: TaskRepository,
         locationReminderService: LocationReminderService,
         calendarSyncService: CalendarSyncService,
+        reminderSyncService: ReminderSyncService,
         userDefaults: UserDefaults = .standard
     ) {
         self.taskRepository = taskRepository
         self.locationReminderService = locationReminderService
         self.calendarSyncService = calendarSyncService
+        self.reminderSyncService = reminderSyncService
         self.userDefaults = userDefaults
     }
 
@@ -66,11 +71,18 @@ final class UpcomingViewModel {
 
         let upcomingTasks = relevant.filter { calendar.startOfDay(for: $0.dueDate!) >= startOfToday }
 
+        let windowEnd = calendar.date(byAdding: .day, value: Self.eventLookaheadDays, to: startOfToday) ?? startOfToday
+
         let calendarSyncEnabled = (userDefaults.object(forKey: SettingsKeys.calendarSyncEnabled) as? Bool) ?? false
         var events: [CalendarEvent] = []
         if calendarSyncEnabled {
-            let windowEnd = calendar.date(byAdding: .day, value: Self.eventLookaheadDays, to: startOfToday) ?? startOfToday
             events = await calendarSyncService.fetchEvents(from: startOfToday, to: windowEnd)
+        }
+
+        let reminderSyncEnabled = (userDefaults.object(forKey: SettingsKeys.reminderSyncEnabled) as? Bool) ?? false
+        var reminders: [ReminderItem] = []
+        if reminderSyncEnabled {
+            reminders = await reminderSyncService.fetchReminders(from: startOfToday, to: windowEnd)
         }
 
         var itemsByDay: [Date: [UpcomingItem]] = [:]
@@ -87,6 +99,10 @@ final class UpcomingViewModel {
             // stale section that sorts above today.
             let day = max(calendar.startOfDay(for: event.startDate), startOfToday)
             itemsByDay[day, default: []].append(.event(event))
+        }
+        for reminder in reminders {
+            let day = max(calendar.startOfDay(for: reminder.dueDate), startOfToday)
+            itemsByDay[day, default: []].append(.reminder(reminder))
         }
 
         daySections = itemsByDay.keys.sorted().map { day in
@@ -132,6 +148,9 @@ final class UpcomingViewModel {
         case .event(let event):
             if event.isAllDay { return (.allDay, nil, event.title) }
             return (.timed, event.startDate, event.title)
+        case .reminder(let reminder):
+            if reminder.hasTime { return (.timed, reminder.dueDate, reminder.title) }
+            return (.untimed, nil, reminder.title)
         }
     }
 

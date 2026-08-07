@@ -29,23 +29,23 @@ struct SettingsView: View {
                     ToggleRow(icon: "sparkles", title: "AI Insights", isOn: $viewModel.aiInsightsEnabled)
                 }
 
-                section(title: "Default Reminders") {
-                    ToggleRow(icon: "clock", title: "Remind Me by Default", isOn: $viewModel.defaultRemindersEnabled)
-                }
-
                 section(title: "Calendar") {
                     ToggleRow(icon: "calendar", title: "Sync Calendar", isOn: $viewModel.calendarSyncEnabled)
                     if viewModel.calendarSyncEnabled {
                         NavigationLink {
                             CalendarPickerView(viewModel: dependencies.makeCalendarPickerViewModel())
                         } label: {
-                            IconRow(icon: "checklist", title: "Choose Calendars") {
+                            IconRow(icon: "list.bullet", title: "Choose Calendars") {
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13, weight: .semibold))
                                     .foregroundStyle(.secondary)
                             }
                         }
                     }
+                }
+
+                section(title: "Reminders") {
+                    ToggleRow(icon: "checklist", title: "Sync Reminders", isOn: $viewModel.reminderSyncEnabled)
                 }
             }
             .padding(MosaicSpacing.md)
@@ -56,6 +56,9 @@ struct SettingsView: View {
         }
         .onChange(of: viewModel.calendarSyncEnabled) { _, _ in
             Task { await viewModel.handleCalendarSyncToggleChanged() }
+        }
+        .onChange(of: viewModel.reminderSyncEnabled) { _, _ in
+            Task { await viewModel.handleReminderSyncToggleChanged() }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             Text("Settings")

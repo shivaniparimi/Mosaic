@@ -9,12 +9,14 @@ struct UpcomingViewModelTests {
         context: ModelContext,
         locationReminderService: LocationReminderService = RecordingLocationReminderService(),
         calendarSyncService: CalendarSyncService = StubCalendarSyncService(),
+        reminderSyncService: ReminderSyncService = StubReminderSyncService(),
         userDefaults: UserDefaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
     ) -> UpcomingViewModel {
         UpcomingViewModel(
             taskRepository: SwiftDataTaskRepository(context: context),
             locationReminderService: locationReminderService,
             calendarSyncService: calendarSyncService,
+            reminderSyncService: reminderSyncService,
             userDefaults: userDefaults
         )
     }
@@ -24,6 +26,7 @@ struct UpcomingViewModelTests {
             switch item {
             case .task(let task): task.title
             case .event(let event): event.title
+            case .reminder(let reminder): reminder.title
             }
         }
     }
@@ -219,6 +222,57 @@ struct UpcomingViewModelTests {
         #expect(calendarSyncService.lastFetchRange?.end == expectedEnd)
     }
 
+    @Test func loadExcludesRemindersWhenSyncDisabled() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let today = Calendar.current.startOfDay(for: .now)
+        let reminder = ReminderItem(id: "r1", title: "Pick up dry cleaning", dueDate: today, hasTime: false)
+        let reminderSyncService = StubReminderSyncService(reminders: [reminder])
+        let userDefaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+
+        let viewModel = makeViewModel(context: container.mainContext, reminderSyncService: reminderSyncService, userDefaults: userDefaults)
+        await viewModel.load()
+
+        #expect(viewModel.daySections.isEmpty)
+        #expect(reminderSyncService.fetchCallCount == 0)
+    }
+
+    @Test func loadIncludesRemindersWhenSyncEnabled() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let today = Calendar.current.startOfDay(for: .now)
+        let reminder = ReminderItem(id: "r1", title: "Pick up dry cleaning", dueDate: today, hasTime: false)
+        let reminderSyncService = StubReminderSyncService(reminders: [reminder])
+        let userDefaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        userDefaults.set(true, forKey: SettingsKeys.reminderSyncEnabled)
+
+        let viewModel = makeViewModel(context: container.mainContext, reminderSyncService: reminderSyncService, userDefaults: userDefaults)
+        await viewModel.load()
+
+        #expect(viewModel.daySections.count == 1)
+        #expect(titles(viewModel.daySections[0].items) == ["Pick up dry cleaning"])
+        #expect(reminderSyncService.fetchCallCount == 1)
+    }
+
+    @Test func loadSortsTimedReminderWithTimedItemsAndUntimedReminderLast() async throws {
+        let container = TestModelContainer.makeInMemory()
+        let repository = SwiftDataTaskRepository(context: container.mainContext)
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let morningTime = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: today)!
+
+        try repository.create(TaskItem(title: "Timed task", dueDate: today, dueTime: morningTime))
+
+        let timedReminder = ReminderItem(id: "r1", title: "Timed reminder", dueDate: morningTime, hasTime: true)
+        let untimedReminder = ReminderItem(id: "r2", title: "Untimed reminder", dueDate: today, hasTime: false)
+        let reminderSyncService = StubReminderSyncService(reminders: [timedReminder, untimedReminder])
+        let userDefaults = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+        userDefaults.set(true, forKey: SettingsKeys.reminderSyncEnabled)
+
+        let viewModel = makeViewModel(context: container.mainContext, reminderSyncService: reminderSyncService, userDefaults: userDefaults)
+        await viewModel.load()
+
+        #expect(titles(viewModel.daySections[0].items) == ["Timed reminder", "Timed task", "Untimed reminder"])
+    }
+
     @Test func loadClampsOverlappingMultiDayEventsToTodayNotAPastSection() async throws {
         let container = TestModelContainer.makeInMemory()
         let calendar = Calendar.current
@@ -302,4 +356,20 @@ private final class StubCalendarSyncService: CalendarSyncService {
     }
 
     func fetchAvailableCalendars() async -> [CalendarInfo] { [] }
+}
+
+private final class StubReminderSyncService: ReminderSyncService {
+    private let reminders: [ReminderItem]
+    private(set) var fetchCallCount = 0
+
+    init(reminders: [ReminderItem] = []) {
+        self.reminders = reminders
+    }
+
+    func requestAuthorization() async -> Bool { true }
+
+    func fetchReminders(from startDate: Date, to endDate: Date) async -> [ReminderItem] {
+        fetchCallCount += 1
+        return reminders
+    }
 }

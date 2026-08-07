@@ -12,11 +12,11 @@ final class SettingsViewModel {
     var aiInsightsEnabled: Bool {
         didSet { userDefaults.set(aiInsightsEnabled, forKey: SettingsKeys.aiInsightsEnabled) }
     }
-    var defaultRemindersEnabled: Bool {
-        didSet { userDefaults.set(defaultRemindersEnabled, forKey: SettingsKeys.defaultRemindersEnabled) }
-    }
     var calendarSyncEnabled: Bool {
         didSet { userDefaults.set(calendarSyncEnabled, forKey: SettingsKeys.calendarSyncEnabled) }
+    }
+    var reminderSyncEnabled: Bool {
+        didSet { userDefaults.set(reminderSyncEnabled, forKey: SettingsKeys.reminderSyncEnabled) }
     }
 
     let appVersion: String
@@ -26,6 +26,7 @@ final class SettingsViewModel {
     private let notificationService: NotificationService
     private let taskRepository: TaskRepository
     private let calendarSyncService: CalendarSyncService
+    private let reminderSyncService: ReminderSyncService
     // Tracks the last `notificationsEnabled` value this method has actually
     // acted on. `handleNotificationsToggleChanged()` reverting the toggle on
     // denial mutates `notificationsEnabled` itself, which re-triggers
@@ -35,19 +36,30 @@ final class SettingsViewModel {
     // the revert, before any suspension point, so there's no race window.
     private var lastHandledNotificationsEnabled: Bool?
     private var lastHandledCalendarSyncEnabled: Bool?
+    // Same re-entrancy guard as lastHandledCalendarSyncEnabled, for the
+    // Reminders sync toggle.
+    private var lastHandledReminderSyncEnabled: Bool?
 
-    init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main, notificationService: NotificationService, taskRepository: TaskRepository, calendarSyncService: CalendarSyncService) {
+    init(
+        userDefaults: UserDefaults = .standard,
+        bundle: Bundle = .main,
+        notificationService: NotificationService,
+        taskRepository: TaskRepository,
+        calendarSyncService: CalendarSyncService,
+        reminderSyncService: ReminderSyncService
+    ) {
         self.userDefaults = userDefaults
-        self.theme = AppTheme(rawValue: userDefaults.string(forKey: SettingsKeys.theme) ?? "") ?? .system
+        self.theme = AppTheme(rawValue: userDefaults.string(forKey: SettingsKeys.theme) ?? "") ?? .light
         self.notificationsEnabled = (userDefaults.object(forKey: SettingsKeys.notificationsEnabled) as? Bool) ?? false
         self.aiInsightsEnabled = (userDefaults.object(forKey: SettingsKeys.aiInsightsEnabled) as? Bool) ?? true
-        self.defaultRemindersEnabled = (userDefaults.object(forKey: SettingsKeys.defaultRemindersEnabled) as? Bool) ?? false
         self.calendarSyncEnabled = (userDefaults.object(forKey: SettingsKeys.calendarSyncEnabled) as? Bool) ?? false
+        self.reminderSyncEnabled = (userDefaults.object(forKey: SettingsKeys.reminderSyncEnabled) as? Bool) ?? false
         self.appVersion = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         self.buildNumber = bundle.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         self.notificationService = notificationService
         self.taskRepository = taskRepository
         self.calendarSyncService = calendarSyncService
+        self.reminderSyncService = reminderSyncService
     }
 
     func handleNotificationsToggleChanged() async {
@@ -88,6 +100,25 @@ final class SettingsViewModel {
         }
 
         lastHandledCalendarSyncEnabled = true
+    }
+
+    func handleReminderSyncToggleChanged() async {
+        let currentValue = reminderSyncEnabled
+        guard lastHandledReminderSyncEnabled != currentValue else { return }
+
+        guard currentValue else {
+            lastHandledReminderSyncEnabled = false
+            return
+        }
+
+        let granted = await reminderSyncService.requestAuthorization()
+        guard granted else {
+            reminderSyncEnabled = false
+            lastHandledReminderSyncEnabled = false
+            return
+        }
+
+        lastHandledReminderSyncEnabled = true
     }
 
     // Every existing task's reminder was cancelled the last time this toggle

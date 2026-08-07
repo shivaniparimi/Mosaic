@@ -13,6 +13,7 @@ final class AppDependencyContainer {
     let locationReminderService: LocationReminderService
     let attachmentStorageService: AttachmentStorageService
     let calendarSyncService: CalendarSyncService
+    let reminderSyncService: ReminderSyncService
 
     init(
         modelContainer: ModelContainer,
@@ -25,7 +26,8 @@ final class AppDependencyContainer {
         notificationService: NotificationService,
         locationReminderService: LocationReminderService,
         attachmentStorageService: AttachmentStorageService,
-        calendarSyncService: CalendarSyncService
+        calendarSyncService: CalendarSyncService,
+        reminderSyncService: ReminderSyncService
     ) {
         self.modelContainer = modelContainer
         self.taskRepository = taskRepository
@@ -38,6 +40,7 @@ final class AppDependencyContainer {
         self.locationReminderService = locationReminderService
         self.attachmentStorageService = attachmentStorageService
         self.calendarSyncService = calendarSyncService
+        self.reminderSyncService = reminderSyncService
     }
 
     static func live() -> AppDependencyContainer {
@@ -53,6 +56,7 @@ final class AppDependencyContainer {
         let notificationService = UserNotificationService()
         let attachmentStorageService = FileManagerAttachmentStorageService()
         let calendarSyncService = EventKitCalendarSyncService()
+        let reminderSyncService = EventKitReminderSyncService()
 
         return AppDependencyContainer(
             modelContainer: container,
@@ -65,7 +69,8 @@ final class AppDependencyContainer {
             notificationService: notificationService,
             locationReminderService: CLLocationReminderService(taskRepository: taskRepository, notificationService: notificationService),
             attachmentStorageService: attachmentStorageService,
-            calendarSyncService: calendarSyncService
+            calendarSyncService: calendarSyncService,
+            reminderSyncService: reminderSyncService
         )
     }
 
@@ -82,6 +87,7 @@ final class AppDependencyContainer {
         let notificationService = UserNotificationService()
         let attachmentStorageService = FileManagerAttachmentStorageService()
         let calendarSyncService = FakeCalendarSyncService()
+        let reminderSyncService = FakeReminderSyncService()
 
         return AppDependencyContainer(
             modelContainer: container,
@@ -94,7 +100,8 @@ final class AppDependencyContainer {
             notificationService: notificationService,
             locationReminderService: CLLocationReminderService(taskRepository: taskRepository, notificationService: notificationService),
             attachmentStorageService: attachmentStorageService,
-            calendarSyncService: calendarSyncService
+            calendarSyncService: calendarSyncService,
+            reminderSyncService: reminderSyncService
         )
     }
 
@@ -125,7 +132,12 @@ final class AppDependencyContainer {
     }
 
     func makeUpcomingViewModel() -> UpcomingViewModel {
-        UpcomingViewModel(taskRepository: taskRepository, locationReminderService: locationReminderService, calendarSyncService: calendarSyncService)
+        UpcomingViewModel(
+            taskRepository: taskRepository,
+            locationReminderService: locationReminderService,
+            calendarSyncService: calendarSyncService,
+            reminderSyncService: reminderSyncService
+        )
     }
 
     func makeSearchViewModel() -> SearchViewModel {
@@ -133,7 +145,12 @@ final class AppDependencyContainer {
     }
 
     func makeSettingsViewModel() -> SettingsViewModel {
-        SettingsViewModel(notificationService: notificationService, taskRepository: taskRepository, calendarSyncService: calendarSyncService)
+        SettingsViewModel(
+            notificationService: notificationService,
+            taskRepository: taskRepository,
+            calendarSyncService: calendarSyncService,
+            reminderSyncService: reminderSyncService
+        )
     }
 
     func makeCalendarPickerViewModel() -> CalendarPickerViewModel {
