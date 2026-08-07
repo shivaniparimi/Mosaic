@@ -4,7 +4,6 @@ import SwiftData
 final class AppDependencyContainer {
     let modelContainer: ModelContainer
     let taskRepository: TaskRepository
-    let projectRepository: ProjectRepository
     let tagRepository: TagRepository
     let recurringTaskTemplateRepository: RecurringTaskTemplateRepository
     let aiInsightService: AIInsightService
@@ -13,11 +12,11 @@ final class AppDependencyContainer {
     let notificationService: NotificationService
     let locationReminderService: LocationReminderService
     let attachmentStorageService: AttachmentStorageService
+    let calendarSyncService: CalendarSyncService
 
     init(
         modelContainer: ModelContainer,
         taskRepository: TaskRepository,
-        projectRepository: ProjectRepository,
         tagRepository: TagRepository,
         recurringTaskTemplateRepository: RecurringTaskTemplateRepository,
         aiInsightService: AIInsightService,
@@ -25,11 +24,11 @@ final class AppDependencyContainer {
         recurringTaskGenerationService: RecurringTaskGenerationService,
         notificationService: NotificationService,
         locationReminderService: LocationReminderService,
-        attachmentStorageService: AttachmentStorageService
+        attachmentStorageService: AttachmentStorageService,
+        calendarSyncService: CalendarSyncService
     ) {
         self.modelContainer = modelContainer
         self.taskRepository = taskRepository
-        self.projectRepository = projectRepository
         self.tagRepository = tagRepository
         self.recurringTaskTemplateRepository = recurringTaskTemplateRepository
         self.aiInsightService = aiInsightService
@@ -38,6 +37,7 @@ final class AppDependencyContainer {
         self.notificationService = notificationService
         self.locationReminderService = locationReminderService
         self.attachmentStorageService = attachmentStorageService
+        self.calendarSyncService = calendarSyncService
     }
 
     static func live() -> AppDependencyContainer {
@@ -52,11 +52,11 @@ final class AppDependencyContainer {
         let taskRepository = SwiftDataTaskRepository(context: context)
         let notificationService = UserNotificationService()
         let attachmentStorageService = FileManagerAttachmentStorageService()
+        let calendarSyncService = EventKitCalendarSyncService()
 
         return AppDependencyContainer(
             modelContainer: container,
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: context),
             tagRepository: SwiftDataTagRepository(context: context),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: context),
             aiInsightService: DefaultAIInsightService(),
@@ -64,7 +64,8 @@ final class AppDependencyContainer {
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
             notificationService: notificationService,
             locationReminderService: CLLocationReminderService(taskRepository: taskRepository, notificationService: notificationService),
-            attachmentStorageService: attachmentStorageService
+            attachmentStorageService: attachmentStorageService,
+            calendarSyncService: calendarSyncService
         )
     }
 
@@ -80,11 +81,11 @@ final class AppDependencyContainer {
         let taskRepository = SwiftDataTaskRepository(context: context)
         let notificationService = UserNotificationService()
         let attachmentStorageService = FileManagerAttachmentStorageService()
+        let calendarSyncService = FakeCalendarSyncService()
 
         return AppDependencyContainer(
             modelContainer: container,
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: context),
             tagRepository: SwiftDataTagRepository(context: context),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: context),
             aiInsightService: DefaultAIInsightService(),
@@ -92,7 +93,8 @@ final class AppDependencyContainer {
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
             notificationService: notificationService,
             locationReminderService: CLLocationReminderService(taskRepository: taskRepository, notificationService: notificationService),
-            attachmentStorageService: attachmentStorageService
+            attachmentStorageService: attachmentStorageService,
+            calendarSyncService: calendarSyncService
         )
     }
 
@@ -109,7 +111,6 @@ final class AppDependencyContainer {
     func makeTaskCreationViewModel(capturesToInbox: Bool = false) -> TaskCreationViewModel {
         TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: projectRepository,
             tagRepository: tagRepository,
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: recurringTaskGenerationService,
@@ -123,24 +124,24 @@ final class AppDependencyContainer {
         InboxViewModel(taskRepository: taskRepository, locationReminderService: locationReminderService)
     }
 
-    func makeProjectsViewModel() -> ProjectsViewModel {
-        ProjectsViewModel(projectRepository: projectRepository, taskRepository: taskRepository, aiInsightService: aiInsightService)
-    }
-
-    func makeNewProjectViewModel() -> NewProjectViewModel {
-        NewProjectViewModel(projectRepository: projectRepository)
+    func makeUpcomingViewModel() -> UpcomingViewModel {
+        UpcomingViewModel(taskRepository: taskRepository, locationReminderService: locationReminderService, calendarSyncService: calendarSyncService)
     }
 
     func makeSearchViewModel() -> SearchViewModel {
-        SearchViewModel(taskRepository: taskRepository, projectRepository: projectRepository, tagRepository: tagRepository)
+        SearchViewModel(taskRepository: taskRepository, tagRepository: tagRepository)
     }
 
     func makeSettingsViewModel() -> SettingsViewModel {
-        SettingsViewModel(notificationService: notificationService, taskRepository: taskRepository)
+        SettingsViewModel(notificationService: notificationService, taskRepository: taskRepository, calendarSyncService: calendarSyncService)
+    }
+
+    func makeCalendarPickerViewModel() -> CalendarPickerViewModel {
+        CalendarPickerViewModel(calendarSyncService: calendarSyncService)
     }
 
     func makeTaskDetailViewModel(task: TaskItem) -> TaskDetailViewModel {
-        TaskDetailViewModel(task: task, taskRepository: taskRepository, projectRepository: projectRepository, tagRepository: tagRepository, notificationService: notificationService, locationReminderService: locationReminderService, attachmentStorageService: attachmentStorageService)
+        TaskDetailViewModel(task: task, taskRepository: taskRepository, tagRepository: tagRepository, notificationService: notificationService, locationReminderService: locationReminderService, attachmentStorageService: attachmentStorageService)
     }
 
     func reregisterLocationReminders() async {

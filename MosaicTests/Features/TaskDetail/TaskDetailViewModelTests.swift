@@ -15,7 +15,6 @@ struct TaskDetailViewModelTests {
         TaskDetailViewModel(
             task: task,
             taskRepository: SwiftDataTaskRepository(context: context),
-            projectRepository: SwiftDataProjectRepository(context: context),
             tagRepository: SwiftDataTagRepository(context: context),
             notificationService: notificationService,
             locationReminderService: locationReminderService,
@@ -35,21 +34,6 @@ struct TaskDetailViewModelTests {
 
         let reloaded = try taskRepository.fetchAll().first
         #expect(reloaded?.title == "Updated")
-    }
-
-    @Test func setProjectUpdatesAndPersists() throws {
-        let container = TestModelContainer.makeInMemory()
-        let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
-        let projectRepository = SwiftDataProjectRepository(context: container.mainContext)
-        let task = TaskItem(title: "Task")
-        try taskRepository.create(task)
-        let project = Project(name: "Website", colorHex: "#4C6EF5")
-        try projectRepository.create(project)
-
-        let viewModel = makeViewModel(task: task, context: container.mainContext)
-        viewModel.setProject(project)
-
-        #expect(task.project?.name == "Website")
     }
 
     @Test func setPriorityUpdatesAndPersists() throws {
@@ -447,7 +431,6 @@ struct TaskDetailViewModelTests {
         let viewModel = TaskDetailViewModel(
             task: task,
             taskRepository: FailingAddAttachmentTaskRepository(),
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             notificationService: RecordingNotificationService(),
             locationReminderService: RecordingLocationReminderService(),

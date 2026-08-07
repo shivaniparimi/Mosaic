@@ -8,7 +8,6 @@ struct TaskCreationViewModelTests {
     private func makeViewModel(context: ModelContext) -> TaskCreationViewModel {
         TaskCreationViewModel(
             taskRepository: SwiftDataTaskRepository(context: context),
-            projectRepository: SwiftDataProjectRepository(context: context),
             tagRepository: SwiftDataTagRepository(context: context),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: context),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(
@@ -44,52 +43,11 @@ struct TaskCreationViewModelTests {
         #expect(viewModel.draft?.date != nil)
     }
 
-    @Test func createTaskDropsUnmatchedProjectMention() async throws {
-        let container = TestModelContainer.makeInMemory()
-        let viewModel = makeViewModel(context: container.mainContext)
-
-        viewModel.inputText = "design review @NonexistentProject"
-        viewModel.scheduleParse()
-        try await Task.sleep(for: .milliseconds(600))
-
-        #expect(viewModel.draft?.projectName == nil)
-    }
-
-    @Test func createTaskMatchesExistingProjectCaseInsensitively() async throws {
-        let container = TestModelContainer.makeInMemory()
-        let projectRepository = SwiftDataProjectRepository(context: container.mainContext)
-        try projectRepository.create(Project(name: "Design", colorHex: "#E8738A"))
-        let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
-
-        let viewModel = TaskCreationViewModel(
-            taskRepository: taskRepository,
-            projectRepository: projectRepository,
-            tagRepository: SwiftDataTagRepository(context: container.mainContext),
-            recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
-            recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
-            parsingService: DefaultNaturalLanguageParsingService(),
-            notificationService: RecordingNotificationService()
-        )
-
-        viewModel.inputText = "design review @design"
-        viewModel.scheduleParse()
-        try await Task.sleep(for: .milliseconds(600))
-
-        #expect(viewModel.draft?.projectName == "Design")
-
-        let created = await viewModel.createTask()
-        #expect(created)
-
-        let tasks = try taskRepository.fetchAll()
-        #expect(tasks.first?.project?.name == "Design")
-    }
-
     @Test func createTaskAnchorsDueTimeToResolvedDueDateNotNow() async throws {
         let container = TestModelContainer.makeInMemory()
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -116,7 +74,6 @@ struct TaskCreationViewModelTests {
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -139,7 +96,6 @@ struct TaskCreationViewModelTests {
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -164,7 +120,6 @@ struct TaskCreationViewModelTests {
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -188,7 +143,6 @@ struct TaskCreationViewModelTests {
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -210,7 +164,6 @@ struct TaskCreationViewModelTests {
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -249,7 +202,6 @@ struct TaskCreationViewModelTests {
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -312,7 +264,6 @@ struct TaskCreationViewModelTests {
         let recurringTaskTemplateRepository = SwiftDataRecurringTaskTemplateRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -356,7 +307,6 @@ struct TaskCreationViewModelTests {
         let container = TestModelContainer.makeInMemory()
         let viewModel = TaskCreationViewModel(
             taskRepository: AlwaysFailingTaskRepository(),
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(
@@ -377,7 +327,6 @@ struct TaskCreationViewModelTests {
         let container = TestModelContainer.makeInMemory()
         let failingViewModel = TaskCreationViewModel(
             taskRepository: AlwaysFailingTaskRepository(),
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(
@@ -403,7 +352,6 @@ struct TaskCreationViewModelTests {
         let taskRepository = SwiftDataTaskRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -425,7 +373,6 @@ struct TaskCreationViewModelTests {
         let recurringTaskTemplateRepository = SwiftDataRecurringTaskTemplateRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -453,7 +400,6 @@ struct TaskCreationViewModelTests {
         let recurringTaskTemplateRepository = SwiftDataRecurringTaskTemplateRepository(context: container.mainContext)
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: recurringTaskTemplateRepository,
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),
@@ -479,7 +425,6 @@ struct TaskCreationViewModelTests {
         let notificationService = RecordingNotificationService()
         let viewModel = TaskCreationViewModel(
             taskRepository: taskRepository,
-            projectRepository: SwiftDataProjectRepository(context: container.mainContext),
             tagRepository: SwiftDataTagRepository(context: container.mainContext),
             recurringTaskTemplateRepository: SwiftDataRecurringTaskTemplateRepository(context: container.mainContext),
             recurringTaskGenerationService: DefaultRecurringTaskGenerationService(taskRepository: taskRepository),

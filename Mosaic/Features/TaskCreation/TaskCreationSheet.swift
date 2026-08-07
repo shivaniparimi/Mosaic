@@ -94,11 +94,6 @@ struct TaskCreationSheet: View {
                         viewModel.clearTime()
                     }
                 }
-                if let projectName = draft.projectName {
-                    ChipView(icon: "folder", label: projectName, tintColor: .blue) {
-                        viewModel.clearProject()
-                    }
-                }
                 if let tagName = draft.tagName {
                     ChipView(icon: "tag", label: "#\(tagName)", tintColor: MosaicColor.tagPurple) {
                         viewModel.clearTag()
@@ -119,8 +114,6 @@ struct TaskCreationSheet: View {
             isCompleted: false,
             time: viewModel.draft?.timeRangeComponents.map { Self.timeRangeLabel(for: $0) }
                 ?? viewModel.draft?.timeComponents.map { Self.timeLabel(for: $0) },
-            projectName: viewModel.draft?.projectName,
-            projectColor: nil,
             hasReminder: viewModel.draft?.hasReminder ?? false,
             hasAttachments: false,
             onToggleCompletion: {}

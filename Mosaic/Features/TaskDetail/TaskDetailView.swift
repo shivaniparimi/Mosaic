@@ -46,8 +46,6 @@ struct TaskDetailView: View {
                 sectionedCard(title: "Organisation") {
                     OrganisationCard(
                         task: task,
-                        availableProjects: viewModel.availableProjects,
-                        onSelectProject: viewModel.setProject,
                         onSelectPriority: viewModel.setPriority,
                         onAddTag: viewModel.addTag,
                         onRemoveTag: viewModel.removeTag

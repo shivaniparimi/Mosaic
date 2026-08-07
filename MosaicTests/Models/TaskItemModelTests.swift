@@ -91,21 +91,4 @@ struct TaskItemModelTests {
         let remainingReminders = try context.fetch(FetchDescriptor<LocationReminder>())
         #expect(remainingReminders.isEmpty)
     }
-
-    @Test func deletingProjectNullifiesTaskReference() throws {
-        let container = TestModelContainer.makeInMemory()
-        let context = container.mainContext
-
-        let project = Project(name: "Launch", colorHex: "#4C6EF5")
-        let task = TaskItem(title: "Ship it", project: project)
-
-        context.insert(task)
-        try context.save()
-
-        context.delete(project)
-        try context.save()
-
-        let fetched = try context.fetch(FetchDescriptor<TaskItem>())
-        #expect(fetched.first?.project == nil)
-    }
 }

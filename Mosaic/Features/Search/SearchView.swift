@@ -11,8 +11,6 @@ struct SearchView: View {
     }
 
     var body: some View {
-        let projectFilters = viewModel.availableProjectFilters
-
         ScrollView {
             VStack(alignment: .leading, spacing: MosaicSpacing.lg) {
                 SearchField(text: $viewModel.query, onSubmit: {
@@ -20,10 +18,6 @@ struct SearchView: View {
                 })
                 .onChange(of: viewModel.query) { _, _ in
                     viewModel.scheduleSearch()
-                }
-
-                if !projectFilters.isEmpty {
-                    filterChipRow(projectFilters: projectFilters)
                 }
 
                 content
@@ -48,29 +42,6 @@ struct SearchView: View {
         }
     }
 
-    private func filterChipRow(projectFilters: [Project]) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: MosaicSpacing.sm) {
-                ForEach(projectFilters) { project in
-                    ProjectFilterChip(
-                        name: project.name,
-                        colorHex: project.colorHex,
-                        isSelected: viewModel.selectedProjectFilter?.id == project.id,
-                        onTap: {
-                            Task {
-                                if viewModel.selectedProjectFilter?.id == project.id {
-                                    await viewModel.clearProjectFilter()
-                                } else {
-                                    await viewModel.selectProjectFilter(project)
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-        }
-    }
-
     @ViewBuilder
     private var content: some View {
         let trimmedQuery = viewModel.query.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -80,7 +51,7 @@ struct SearchView: View {
                 EmptyStateView(
                     iconSystemName: "magnifyingglass",
                     title: "Search Mosaic",
-                    message: "Find tasks, projects, and tags."
+                    message: "Find tasks and tags."
                 )
                 .padding(.top, MosaicSpacing.xl)
             } else {
@@ -129,33 +100,11 @@ struct SearchView: View {
                         title: task.title,
                         isCompleted: task.isCompleted,
                         time: task.dueTime.map { Self.timeFormatter.string(from: $0) },
-                        projectName: task.project?.name,
-                        projectColor: task.project.map { Color(hex: $0.colorHex) },
                         hasReminder: task.hasReminder,
                         hasAttachments: !task.attachments.isEmpty,
                         onTap: { selectedTask = task },
                         onToggleCompletion: {}
                     )
-                }
-            }
-        }
-
-        if !viewModel.projectResults.isEmpty {
-            VStack(alignment: .leading, spacing: MosaicSpacing.sm) {
-                SectionHeader(title: "Projects")
-                ForEach(viewModel.projectResults) { project in
-                    HStack(spacing: MosaicSpacing.sm) {
-                        Circle()
-                            .fill(Color(hex: project.colorHex))
-                            .frame(width: 10, height: 10)
-                        Text(project.name)
-                            .font(.system(size: 15, weight: .medium))
-                        Spacer()
-                    }
-                    .padding(MosaicSpacing.md)
-                    .background(MosaicColor.surface)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .shadow(color: .black.opacity(0.06), radius: 8, y: 2)
                 }
             }
         }
@@ -184,10 +133,7 @@ struct SearchView: View {
 
 #Preview {
     let container = AppDependencyContainer.preview()
-    let designProject = Project(name: "Design Sprint", colorHex: "#4C6EF5")
-    try? container.projectRepository.create(designProject)
-    try? container.projectRepository.create(Project(name: "Marketing Launch", colorHex: "#51CF66"))
-    try? container.taskRepository.create(TaskItem(title: "Design review meeting", project: designProject))
+    try? container.taskRepository.create(TaskItem(title: "Design review meeting"))
     _ = try? container.tagRepository.findOrCreate(name: "design")
 
     return SearchView(viewModel: container.makeSearchViewModel())

@@ -8,11 +8,11 @@ struct TabRouterTests {
         #expect(router.selectedTab == .today)
     }
 
-    @Test func fabIsVisibleOnTodayInboxAndProjects() {
+    @Test func fabIsVisibleOnTodayInboxAndUpcoming() {
         let router = TabRouter()
         #expect(router.isFABVisible(for: .today))
         #expect(router.isFABVisible(for: .inbox))
-        #expect(router.isFABVisible(for: .projects))
+        #expect(router.isFABVisible(for: .upcoming))
     }
 
     @Test func fabIsHiddenOnSearchAndSettings() {

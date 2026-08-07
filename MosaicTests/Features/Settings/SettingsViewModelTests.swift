@@ -13,7 +13,7 @@ struct SettingsViewModelTests {
     @Test func defaultValuesOnFirstLaunch() {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         #expect(viewModel.theme == .system)
         #expect(viewModel.notificationsEnabled == false)
@@ -24,11 +24,11 @@ struct SettingsViewModelTests {
     @Test func settingThemePersistsAndIsPickedUpByAFreshViewModel() {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.theme = .dark
 
-        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
         #expect(reloaded.theme == .dark)
         #expect(defaults.string(forKey: SettingsKeys.theme) == "dark")
     }
@@ -36,40 +36,40 @@ struct SettingsViewModelTests {
     @Test func settingNotificationsEnabledPersists() {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.notificationsEnabled = true
 
-        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
         #expect(reloaded.notificationsEnabled == true)
     }
 
     @Test func settingAIInsightsEnabledPersists() {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.aiInsightsEnabled = false
 
-        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
         #expect(reloaded.aiInsightsEnabled == false)
     }
 
     @Test func settingDefaultRemindersEnabledPersists() {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.defaultRemindersEnabled = true
 
-        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let reloaded = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
         #expect(reloaded.defaultRemindersEnabled == true)
     }
 
     @Test func appVersionAndBuildNumberReflectInjectedBundle() {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
-        let viewModel = SettingsViewModel(userDefaults: defaults, bundle: .main, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, bundle: .main, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         let expectedVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         let expectedBuild = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
@@ -81,7 +81,7 @@ struct SettingsViewModelTests {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
         let notificationService = RecordingNotificationService(authorizationGranted: true)
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.notificationsEnabled = true
         await viewModel.handleNotificationsToggleChanged()
@@ -94,7 +94,7 @@ struct SettingsViewModelTests {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
         let notificationService = RecordingNotificationService(authorizationGranted: false)
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.notificationsEnabled = true
         await viewModel.handleNotificationsToggleChanged()
@@ -106,13 +106,50 @@ struct SettingsViewModelTests {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
         let notificationService = RecordingNotificationService(authorizationGranted: true)
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.notificationsEnabled = false
         await viewModel.handleNotificationsToggleChanged()
 
         #expect(notificationService.cancelAllCalled)
         #expect(!notificationService.authorizationRequested)
+    }
+
+    @Test func handleCalendarSyncToggleChangedRequestsAuthorizationWhenTurnedOn() async {
+        let (defaults, cleanup) = makeIsolatedDefaults()
+        defer { cleanup() }
+        let calendarSyncService = RecordingCalendarSyncService(authorizationGranted: true)
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: calendarSyncService)
+
+        viewModel.calendarSyncEnabled = true
+        await viewModel.handleCalendarSyncToggleChanged()
+
+        #expect(calendarSyncService.authorizationRequested)
+        #expect(viewModel.calendarSyncEnabled)
+    }
+
+    @Test func handleCalendarSyncToggleChangedRevertsToggleWhenPermissionDenied() async {
+        let (defaults, cleanup) = makeIsolatedDefaults()
+        defer { cleanup() }
+        let calendarSyncService = RecordingCalendarSyncService(authorizationGranted: false)
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: calendarSyncService)
+
+        viewModel.calendarSyncEnabled = true
+        await viewModel.handleCalendarSyncToggleChanged()
+
+        #expect(!viewModel.calendarSyncEnabled)
+    }
+
+    @Test func handleCalendarSyncToggleChangedDoesNotRequestAuthorizationWhenTurnedOff() async {
+        let (defaults, cleanup) = makeIsolatedDefaults()
+        defer { cleanup() }
+        let calendarSyncService = RecordingCalendarSyncService(authorizationGranted: true)
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: RecordingNotificationService(authorizationGranted: true), taskRepository: StubTaskRepository(), calendarSyncService: calendarSyncService)
+
+        viewModel.calendarSyncEnabled = false
+        await viewModel.handleCalendarSyncToggleChanged()
+
+        #expect(!calendarSyncService.authorizationRequested)
     }
 
     @Test func handleNotificationsToggleChangedReschedulesExistingRemindersWhenTurnedOn() async throws {
@@ -122,7 +159,7 @@ struct SettingsViewModelTests {
         let taskWithReminder = TaskItem(title: "Water plants", dueDate: .now, dueTime: .now, hasReminder: true)
         let taskWithoutReminder = TaskItem(title: "No reminder", hasReminder: false)
         let taskRepository = StubTaskRepository(tasks: [taskWithReminder, taskWithoutReminder])
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: taskRepository)
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: taskRepository, calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.notificationsEnabled = true
         await viewModel.handleNotificationsToggleChanged()
@@ -134,7 +171,7 @@ struct SettingsViewModelTests {
         let (defaults, cleanup) = makeIsolatedDefaults()
         defer { cleanup() }
         let notificationService = RecordingNotificationService(authorizationGranted: false)
-        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository())
+        let viewModel = SettingsViewModel(userDefaults: defaults, notificationService: notificationService, taskRepository: StubTaskRepository(), calendarSyncService: RecordingCalendarSyncService(authorizationGranted: true))
 
         viewModel.notificationsEnabled = true
         await viewModel.handleNotificationsToggleChanged()
@@ -175,6 +212,23 @@ private final class RecordingNotificationService: NotificationService {
     }
 
     func postLocationAlert(identifier: String, title: String, body: String) async {}
+}
+
+private final class RecordingCalendarSyncService: CalendarSyncService {
+    private let authorizationGranted: Bool
+    private(set) var authorizationRequested = false
+
+    init(authorizationGranted: Bool) {
+        self.authorizationGranted = authorizationGranted
+    }
+
+    func requestAuthorization() async -> Bool {
+        authorizationRequested = true
+        return authorizationGranted
+    }
+
+    func fetchEvents(from startDate: Date, to endDate: Date) async -> [CalendarEvent] { [] }
+    func fetchAvailableCalendars() async -> [CalendarInfo] { [] }
 }
 
 private final class StubTaskRepository: TaskRepository {

@@ -1,5 +1,5 @@
 enum AppTab: String, CaseIterable, Identifiable {
-    case today, inbox, projects, search, settings
+    case today, inbox, upcoming, search, settings
 
     var id: String { rawValue }
 
@@ -7,7 +7,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         switch self {
         case .today: "Today"
         case .inbox: "Inbox"
-        case .projects: "Projects"
+        case .upcoming: "Upcoming"
         case .search: "Search"
         case .settings: "Settings"
         }
@@ -17,7 +17,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         switch self {
         case .today: "sun.max.fill"
         case .inbox: "tray.fill"
-        case .projects: "square.stack.fill"
+        case .upcoming: "calendar"
         case .search: "magnifyingglass"
         case .settings: "gearshape.fill"
         }

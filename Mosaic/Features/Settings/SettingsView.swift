@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @State private var viewModel: SettingsViewModel
+    @Environment(\.dependencies) private var dependencies
 
     init(viewModel: SettingsViewModel) {
         _viewModel = State(initialValue: viewModel)
@@ -31,12 +32,30 @@ struct SettingsView: View {
                 section(title: "Default Reminders") {
                     ToggleRow(icon: "clock", title: "Remind Me by Default", isOn: $viewModel.defaultRemindersEnabled)
                 }
+
+                section(title: "Calendar") {
+                    ToggleRow(icon: "calendar", title: "Sync Calendar", isOn: $viewModel.calendarSyncEnabled)
+                    if viewModel.calendarSyncEnabled {
+                        NavigationLink {
+                            CalendarPickerView(viewModel: dependencies.makeCalendarPickerViewModel())
+                        } label: {
+                            IconRow(icon: "checklist", title: "Choose Calendars") {
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
             }
             .padding(MosaicSpacing.md)
         }
         .background(MosaicColor.canvas)
         .onChange(of: viewModel.notificationsEnabled) { _, _ in
             Task { await viewModel.handleNotificationsToggleChanged() }
+        }
+        .onChange(of: viewModel.calendarSyncEnabled) { _, _ in
+            Task { await viewModel.handleCalendarSyncToggleChanged() }
         }
         .safeAreaInset(edge: .top, spacing: 0) {
             Text("Settings")

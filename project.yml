@@ -28,6 +28,7 @@ targets:
           - UIInterfaceOrientationPortrait
         NSLocationWhenInUseUsageDescription: "Mosaic uses your location to remind you about tasks when you arrive at or leave a place you've chosen, like home or work."
         NSLocationAlwaysAndWhenInUseUsageDescription: "Mosaic uses your location to remind you about tasks when you arrive at or leave a place you've chosen, even when the app isn't open."
+        NSCalendarsFullAccessUsageDescription: "Mosaic uses your calendar to show your events alongside your tasks in Upcoming."
     scheme:
       testTargets:
         - MosaicTests

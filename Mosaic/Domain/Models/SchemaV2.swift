@@ -6,7 +6,6 @@ enum SchemaV2: VersionedSchema {
     static var models: [any PersistentModel.Type] {
         [
             TaskItem.self,
-            Project.self,
             Tag.self,
             Subtask.self,
             TaskAttachment.self,

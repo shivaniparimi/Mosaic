@@ -142,8 +142,6 @@ struct TodayView: View {
             title: task.title,
             isCompleted: task.isCompleted,
             time: task.dueTime.map { Self.timeFormatter.string(from: $0) },
-            projectName: task.project?.name,
-            projectColor: task.project.map { Color(hex: $0.colorHex) },
             hasReminder: task.hasReminder,
             hasAttachments: !task.attachments.isEmpty,
             isRecurring: task.recurringTemplate != nil,
@@ -178,15 +176,12 @@ struct TodayView: View {
     let container = AppDependencyContainer.preview()
     let today = Date.now
     let calendar = Calendar.current
-    let project = Project(name: "Design", colorHex: "#E8738A")
-    try? container.projectRepository.create(project)
     try? container.taskRepository.create(TaskItem(
         title: "Review Q3 design system updates",
         dueDate: today,
         dueTime: calendar.date(bySettingHour: 9, minute: 0, second: 0, of: today),
         timeOfDay: .morning,
-        hasReminder: true,
-        project: project
+        hasReminder: true
     ))
     try? container.taskRepository.create(TaskItem(
         title: "Team standup call",

@@ -19,7 +19,6 @@ final class TaskItem {
     var origin: TaskOrigin
     var sortOrder: Int
 
-    @Relationship(deleteRule: .nullify) var project: Project?
     @Relationship(inverse: \Tag.tasks) var tags: [Tag]
     @Relationship(deleteRule: .cascade, inverse: \Subtask.task) var subtasks: [Subtask]
     @Relationship(deleteRule: .cascade, inverse: \TaskAttachment.task) var attachments: [TaskAttachment]
@@ -42,7 +41,6 @@ final class TaskItem {
         reminderOffsetMinutes: Int? = nil,
         origin: TaskOrigin = .manual,
         sortOrder: Int = 0,
-        project: Project? = nil,
         recurringTemplate: RecurringTaskTemplate? = nil
     ) {
         self.id = id
@@ -60,7 +58,6 @@ final class TaskItem {
         self.reminderOffsetMinutes = reminderOffsetMinutes
         self.origin = origin
         self.sortOrder = sortOrder
-        self.project = project
         self.tags = []
         self.subtasks = []
         self.attachments = []

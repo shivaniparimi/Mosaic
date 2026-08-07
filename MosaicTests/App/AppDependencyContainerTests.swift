@@ -13,13 +13,11 @@ struct AppDependencyContainerTests {
         #expect(tasks.count == 1)
     }
 
-    @Test func previewContainerWiresWorkingProjectAndTagRepositories() throws {
+    @Test func previewContainerWiresWorkingTagRepository() throws {
         let container = AppDependencyContainer.preview()
 
-        try container.projectRepository.create(Project(name: "Test Project", colorHex: "#000000"))
         _ = try container.tagRepository.findOrCreate(name: "test")
 
-        #expect(try container.projectRepository.fetchAll().count == 1)
         #expect(try container.tagRepository.fetchAll().count == 1)
     }
 
@@ -70,27 +68,6 @@ struct AppDependencyContainerTests {
         await viewModel.load()
 
         #expect(viewModel.items.count == 1)
-    }
-
-    @Test func makeProjectsViewModelBuildsWorkingViewModel() async throws {
-        let container = AppDependencyContainer.preview()
-        try container.projectRepository.create(Project(name: "Smoke", colorHex: "#4C6EF5"))
-
-        let viewModel = container.makeProjectsViewModel()
-        await viewModel.load()
-
-        #expect(viewModel.projects.count == 1)
-    }
-
-    @Test func makeNewProjectViewModelBuildsWorkingViewModel() throws {
-        let container = AppDependencyContainer.preview()
-
-        let viewModel = container.makeNewProjectViewModel()
-        viewModel.name = "Smoke Project"
-        let created = viewModel.createProject()
-
-        #expect(created)
-        #expect(try container.projectRepository.fetchAll().count == 1)
     }
 
     @Test func makeSearchViewModelBuildsWorkingViewModel() async throws {
@@ -150,5 +127,10 @@ struct AppDependencyContainerTests {
     @Test func previewContainerWiresAttachmentStorageService() {
         let container = AppDependencyContainer.preview()
         #expect(container.attachmentStorageService is FileManagerAttachmentStorageService)
+    }
+
+    @Test func previewContainerWiresCalendarSyncService() {
+        let container = AppDependencyContainer.preview()
+        #expect(container.calendarSyncService is FakeCalendarSyncService)
     }
 }

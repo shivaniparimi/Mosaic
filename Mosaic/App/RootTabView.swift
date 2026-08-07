@@ -4,7 +4,6 @@ struct RootTabView: View {
     @State private var router = TabRouter()
     @State private var tabBarHeight: CGFloat = 0
     @State private var isPresentingTaskCreation = false
-    @State private var isPresentingNewProject = false
     @State private var inboxCount = 0
     @AppStorage(SettingsKeys.theme) private var themeRawValue: String = AppTheme.system.rawValue
     @Environment(\.dependencies) private var dependencies
@@ -40,12 +39,7 @@ struct RootTabView: View {
 
             if router.isFABVisible(for: router.selectedTab) && !router.isDetailPresented(for: router.selectedTab) {
                 FloatingActionButton {
-                    switch router.selectedTab {
-                    case .projects:
-                        isPresentingNewProject = true
-                    default:
-                        isPresentingTaskCreation = true
-                    }
+                    isPresentingTaskCreation = true
                 }
                 .padding(.bottom, tabBarHeight + MosaicSpacing.md)
             }
@@ -63,9 +57,6 @@ struct RootTabView: View {
         .sheet(isPresented: $isPresentingTaskCreation) {
             TaskCreationSheet(viewModel: dependencies.makeTaskCreationViewModel(capturesToInbox: router.selectedTab == .inbox))
         }
-        .sheet(isPresented: $isPresentingNewProject) {
-            NewProjectSheet(viewModel: dependencies.makeNewProjectViewModel())
-        }
         .task {
             refreshInboxCount()
             await dependencies.reregisterLocationReminders()
@@ -82,8 +73,8 @@ struct RootTabView: View {
             TodayView(viewModel: dependencies.makeTodayViewModel())
         case .inbox:
             InboxView(viewModel: dependencies.makeInboxViewModel())
-        case .projects:
-            ProjectsView(viewModel: dependencies.makeProjectsViewModel())
+        case .upcoming:
+            UpcomingView(viewModel: dependencies.makeUpcomingViewModel())
         case .search:
             SearchView(viewModel: dependencies.makeSearchViewModel())
         case .settings:

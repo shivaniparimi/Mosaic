@@ -4,8 +4,6 @@ struct TaskCard: View {
     let title: String
     let isCompleted: Bool
     var time: String? = nil
-    var projectName: String? = nil
-    var projectColor: Color? = nil
     var hasReminder: Bool = false
     var hasAttachments: Bool = false
     var isRecurring: Bool = false
@@ -82,16 +80,6 @@ struct TaskCard: View {
                         Label(time, systemImage: "clock")
                             .font(.system(size: 12))
                             .foregroundStyle(.secondary)
-                    }
-                    if let projectName {
-                        HStack(spacing: 4) {
-                            Circle()
-                                .fill(projectColor ?? MosaicColor.accent)
-                                .frame(width: 6, height: 6)
-                            Text(projectName)
-                                .font(.system(size: 12))
-                                .foregroundStyle(.secondary)
-                        }
                     }
                     if hasReminder {
                         Image(systemName: "bell.fill")

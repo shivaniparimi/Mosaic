@@ -9,25 +9,19 @@ final class TaskDetailViewModel {
     private(set) var errorMessage: String?
 
     private let taskRepository: TaskRepository
-    private let projectRepository: ProjectRepository
     private let tagRepository: TagRepository
     private let notificationService: NotificationService
     private let locationReminderService: LocationReminderService
     private let attachmentStorageService: AttachmentStorageService
     private var saveTask: Task<Void, Never>?
 
-    init(task: TaskItem, taskRepository: TaskRepository, projectRepository: ProjectRepository, tagRepository: TagRepository, notificationService: NotificationService, locationReminderService: LocationReminderService, attachmentStorageService: AttachmentStorageService) {
+    init(task: TaskItem, taskRepository: TaskRepository, tagRepository: TagRepository, notificationService: NotificationService, locationReminderService: LocationReminderService, attachmentStorageService: AttachmentStorageService) {
         self.task = task
         self.taskRepository = taskRepository
-        self.projectRepository = projectRepository
         self.tagRepository = tagRepository
         self.notificationService = notificationService
         self.locationReminderService = locationReminderService
         self.attachmentStorageService = attachmentStorageService
-    }
-
-    var availableProjects: [Project] {
-        (try? projectRepository.fetchAll()) ?? []
     }
 
     func scheduleSave() {
@@ -154,11 +148,6 @@ final class TaskDetailViewModel {
 
     func clearError() {
         errorMessage = nil
-    }
-
-    func setProject(_ project: Project?) {
-        task.project = project
-        persist()
     }
 
     func setPriority(_ priority: Priority) {

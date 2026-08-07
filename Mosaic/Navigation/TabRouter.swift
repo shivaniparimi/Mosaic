@@ -23,7 +23,7 @@ final class TabRouter {
 
     func isFABVisible(for tab: AppTab) -> Bool {
         switch tab {
-        case .today, .inbox, .projects: true
+        case .today, .inbox, .upcoming: true
         case .search, .settings: false
         }
     }

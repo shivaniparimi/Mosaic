@@ -2,8 +2,6 @@ import SwiftUI
 
 struct OrganisationCard: View {
     @Bindable var task: TaskItem
-    let availableProjects: [Project]
-    let onSelectProject: (Project?) -> Void
     let onSelectPriority: (Priority) -> Void
     let onAddTag: (String) -> Void
     let onRemoveTag: (Tag) -> Void
@@ -13,15 +11,6 @@ struct OrganisationCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: MosaicSpacing.sm) {
             GroupedCard {
-                IconRow(icon: "folder", title: "Project") {
-                    Menu(task.project?.name ?? "None") {
-                        Button("None") { onSelectProject(nil) }
-                        ForEach(availableProjects) { project in
-                            Button(project.name) { onSelectProject(project) }
-                        }
-                    }
-                    .font(.system(size: 13))
-                }
                 IconRow(icon: "flag", title: "Priority") {
                     PriorityInlineSelector(
                         selection: Binding(

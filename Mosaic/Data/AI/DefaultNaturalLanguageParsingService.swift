@@ -7,6 +7,13 @@ struct DefaultNaturalLanguageParsingService: NaturalLanguageParsingService {
     private static let weekdayAbbreviations = [
         "sun", "mon", "tue", "wed", "thu", "fri", "sat"
     ]
+    private static let monthNames = [
+        "january", "february", "march", "april", "may", "june",
+        "july", "august", "september", "october", "november", "december"
+    ]
+    private static let monthAbbreviations = [
+        "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"
+    ]
 
     func parse(_ text: String) -> ParsedTaskDraft {
         var draft = ParsedTaskDraft()
@@ -17,7 +24,6 @@ struct DefaultNaturalLanguageParsingService: NaturalLanguageParsingService {
         } else {
             draft.timeComponents = Self.detectTime(in: text)
         }
-        draft.projectName = Self.detectProject(in: text)
         draft.tagName = Self.detectTag(in: text)
         draft.hasReminder = Self.containsWord(text.lowercased(), phrase: "remind me")
         draft.cleanedTitle = Self.buildCleanedTitle(from: text, draft: draft)
@@ -33,9 +39,6 @@ struct DefaultNaturalLanguageParsingService: NaturalLanguageParsingService {
                 with: "",
                 options: [.regularExpression, .caseInsensitive]
             )
-        }
-        if draft.projectName != nil {
-            cleaned = cleaned.replacingOccurrences(of: #"@\w+"#, with: "", options: .regularExpression)
         }
         if draft.tagName != nil {
             cleaned = cleaned.replacingOccurrences(of: #"#\w+"#, with: "", options: .regularExpression)
@@ -75,6 +78,7 @@ struct DefaultNaturalLanguageParsingService: NaturalLanguageParsingService {
                     options: [.regularExpression, .caseInsensitive]
                 )
             }
+            cleaned = Self.stripExplicitDate(from: cleaned)
         }
         cleaned = cleaned.replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
         cleaned = cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -87,6 +91,9 @@ struct DefaultNaturalLanguageParsingService: NaturalLanguageParsingService {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: .now)
 
+        if let explicitDate = detectExplicitMonthDay(in: text) {
+            return explicitDate
+        }
         if containsWord(lowercased, phrase: "today") {
             return today
         }
@@ -105,6 +112,47 @@ struct DefaultNaturalLanguageParsingService: NaturalLanguageParsingService {
             }
         }
         return nil
+    }
+
+    private static let monthAlternation = (monthNames + monthAbbreviations).joined(separator: "|")
+
+    private static func detectExplicitMonthDay(in text: String) -> Date? {
+        guard let (month, day) = explicitMonthDayComponents(in: text) else { return nil }
+
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let thisYear = calendar.component(.year, from: today)
+        guard let candidate = calendar.date(from: DateComponents(year: thisYear, month: month, day: day)) else {
+            return nil
+        }
+        if calendar.startOfDay(for: candidate) < today {
+            return calendar.date(from: DateComponents(year: thisYear + 1, month: month, day: day))
+        }
+        return candidate
+    }
+
+    private static func explicitMonthDayComponents(in text: String) -> (month: Int, day: Int)? {
+        let pattern = "\\b(\(monthAlternation))\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b"
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, range: range),
+              let monthRange = Range(match.range(at: 1), in: text),
+              let dayRange = Range(match.range(at: 2), in: text),
+              let day = Int(text[dayRange]) else { return nil }
+
+        let monthWord = text[monthRange].lowercased()
+        if let index = monthNames.firstIndex(of: monthWord) {
+            return (index + 1, day)
+        }
+        if let index = monthAbbreviations.firstIndex(of: monthWord) {
+            return (index + 1, day)
+        }
+        return nil
+    }
+
+    private static func stripExplicitDate(from text: String) -> String {
+        let pattern = "\\b(?:on\\s+)?(?:\(monthAlternation))\\s+\\d{1,2}(?:st|nd|rd|th)?\\b"
+        return text.replacingOccurrences(of: pattern, with: "", options: [.regularExpression, .caseInsensitive])
     }
 
     private static func detectRecurringWeekdays(in text: String) -> Set<Int>? {
@@ -202,11 +250,6 @@ struct DefaultNaturalLanguageParsingService: NaturalLanguageParsingService {
             return 0
         }
         return hour
-    }
-
-    private static func detectProject(in text: String) -> String? {
-        guard let range = text.range(of: #"@(\w+)"#, options: .regularExpression) else { return nil }
-        return String(text[range].dropFirst())
     }
 
     private static func detectTag(in text: String) -> String? {

@@ -8,7 +8,6 @@ final class TaskCreationViewModel {
     private(set) var errorMessage: String?
 
     private let taskRepository: TaskRepository
-    private let projectRepository: ProjectRepository
     private let tagRepository: TagRepository
     private let recurringTaskTemplateRepository: RecurringTaskTemplateRepository
     private let recurringTaskGenerationService: RecurringTaskGenerationService
@@ -25,7 +24,6 @@ final class TaskCreationViewModel {
 
     init(
         taskRepository: TaskRepository,
-        projectRepository: ProjectRepository,
         tagRepository: TagRepository,
         recurringTaskTemplateRepository: RecurringTaskTemplateRepository,
         recurringTaskGenerationService: RecurringTaskGenerationService,
@@ -34,7 +32,6 @@ final class TaskCreationViewModel {
         capturesToInbox: Bool = false
     ) {
         self.taskRepository = taskRepository
-        self.projectRepository = projectRepository
         self.tagRepository = tagRepository
         self.recurringTaskTemplateRepository = recurringTaskTemplateRepository
         self.recurringTaskGenerationService = recurringTaskGenerationService
@@ -52,17 +49,6 @@ final class TaskCreationViewModel {
         parseTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(420))
             guard !Task.isCancelled, let self else { return }
-            // Read `inputText` when the debounce FIRES, not when it was
-            // scheduled. SwiftUI does not guarantee that `.onChange`'s action
-            // runs for every mutation: under rapid successive keystrokes it
-            // re-evaluates `body` with the new value but drops some `onChange`
-            // invocations. Capturing the text at schedule time meant the final
-            // keystrokes could have no `scheduleParse()` of their own, leaving
-            // the last surviving timer to apply a permanently truncated parse
-            // ("hot yoga 7-8pm mon wed f" for a fully typed "...mon wed fri").
-            // Reading the current value here makes a dropped `onChange`
-            // harmless: whichever timer survives parses whatever the user has
-            // actually typed by the time the pause elapses.
             await self.applyParse(for: self.inputText)
         }
     }
@@ -74,18 +60,7 @@ final class TaskCreationViewModel {
             return
         }
 
-        var parsed = parsingService.parse(text)
-        if let projectName = parsed.projectName {
-            parsed.projectName = resolveProject(named: projectName)?.name
-        }
-        draft = parsed
-    }
-
-    private func resolveProject(named name: String) -> Project? {
-        let projects = (try? projectRepository.fetchAll()) ?? []
-        return projects.first {
-            $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
-        }
+        draft = parsingService.parse(text)
     }
 
     func clearDate() {
@@ -94,10 +69,6 @@ final class TaskCreationViewModel {
 
     func clearTime() {
         draft?.timeComponents = nil
-    }
-
-    func clearProject() {
-        draft?.projectName = nil
     }
 
     func clearTag() {
@@ -125,15 +96,6 @@ final class TaskCreationViewModel {
         guard canCreate else { return false }
 
         parseTask?.cancel()
-        // The debounced parse (scheduleParse) may not have settled yet for the
-        // current inputText — either because it was never triggered, or because
-        // the user edited the text and hit "create" before the 420ms debounce
-        // fired. In either case `draft` would reflect stale (or no) input.
-        // Re-parse synchronously whenever inputText has diverged from whatever
-        // was last actually parsed, so `draft` is guaranteed fresh at creation
-        // time. When inputText matches what was last parsed, skip re-parsing so
-        // any manual clearDate()/clearTime()/clearProject()/clearTag()/
-        // clearReminder() edits the user made to `draft` are preserved.
         if inputText != lastParsedText {
             await applyParse(for: inputText)
         }
@@ -146,9 +108,6 @@ final class TaskCreationViewModel {
     }
 
     private func createRecurringTask(weekdays: Set<Int>) -> Bool {
-        // No fallback: if the user typed no time at all, the template carries no
-        // start time and its occurrences land in "Anytime", mirroring the one-off
-        // path. Guessing 9:00 AM would invent data the user never supplied.
         let startHour = draft?.timeRangeComponents?.start.hour ?? draft?.timeComponents?.hour
         let startMinute = draft?.timeRangeComponents?.start.minute ?? draft?.timeComponents?.minute
         let endHour = draft?.timeRangeComponents?.end.hour
@@ -185,8 +144,6 @@ final class TaskCreationViewModel {
             }
         }
 
-        let matchedProject = draft?.projectName.flatMap { resolveProject(named: $0) }
-
         let task = TaskItem(
             title: draft?.cleanedTitle ?? inputText.trimmingCharacters(in: .whitespacesAndNewlines),
             capturedAt: isInboxCapture ? .now : nil,
@@ -194,8 +151,7 @@ final class TaskCreationViewModel {
             dueTime: dueTime,
             timeOfDay: dueDate == nil ? nil : Self.timeOfDay(forHour: draft?.timeComponents?.hour),
             hasReminder: draft?.hasReminder ?? false,
-            origin: isInboxCapture ? .quickCapture : .manual,
-            project: matchedProject
+            origin: isInboxCapture ? .quickCapture : .manual
         )
 
         if let tagName = draft?.tagName, let tag = try? tagRepository.findOrCreate(name: tagName) {

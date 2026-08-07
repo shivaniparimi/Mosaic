@@ -3,4 +3,6 @@ enum SettingsKeys {
     static let notificationsEnabled = "mosaic.settings.notificationsEnabled"
     static let aiInsightsEnabled = "mosaic.settings.aiInsightsEnabled"
     static let defaultRemindersEnabled = "mosaic.settings.defaultRemindersEnabled"
+    static let calendarSyncEnabled = "mosaic.settings.calendarSyncEnabled"
+    static let selectedCalendarIdentifiers = "mosaic.settings.selectedCalendarIdentifiers"
 }

@@ -15,6 +15,9 @@ final class SettingsViewModel {
     var defaultRemindersEnabled: Bool {
         didSet { userDefaults.set(defaultRemindersEnabled, forKey: SettingsKeys.defaultRemindersEnabled) }
     }
+    var calendarSyncEnabled: Bool {
+        didSet { userDefaults.set(calendarSyncEnabled, forKey: SettingsKeys.calendarSyncEnabled) }
+    }
 
     let appVersion: String
     let buildNumber: String
@@ -22,6 +25,7 @@ final class SettingsViewModel {
     private let userDefaults: UserDefaults
     private let notificationService: NotificationService
     private let taskRepository: TaskRepository
+    private let calendarSyncService: CalendarSyncService
     // Tracks the last `notificationsEnabled` value this method has actually
     // acted on. `handleNotificationsToggleChanged()` reverting the toggle on
     // denial mutates `notificationsEnabled` itself, which re-triggers
@@ -30,17 +34,20 @@ final class SettingsViewModel {
     // `cancelAllReminders()` — the value is updated synchronously alongside
     // the revert, before any suspension point, so there's no race window.
     private var lastHandledNotificationsEnabled: Bool?
+    private var lastHandledCalendarSyncEnabled: Bool?
 
-    init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main, notificationService: NotificationService, taskRepository: TaskRepository) {
+    init(userDefaults: UserDefaults = .standard, bundle: Bundle = .main, notificationService: NotificationService, taskRepository: TaskRepository, calendarSyncService: CalendarSyncService) {
         self.userDefaults = userDefaults
         self.theme = AppTheme(rawValue: userDefaults.string(forKey: SettingsKeys.theme) ?? "") ?? .system
         self.notificationsEnabled = (userDefaults.object(forKey: SettingsKeys.notificationsEnabled) as? Bool) ?? false
         self.aiInsightsEnabled = (userDefaults.object(forKey: SettingsKeys.aiInsightsEnabled) as? Bool) ?? true
         self.defaultRemindersEnabled = (userDefaults.object(forKey: SettingsKeys.defaultRemindersEnabled) as? Bool) ?? false
+        self.calendarSyncEnabled = (userDefaults.object(forKey: SettingsKeys.calendarSyncEnabled) as? Bool) ?? false
         self.appVersion = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0"
         self.buildNumber = bundle.infoDictionary?["CFBundleVersion"] as? String ?? "1"
         self.notificationService = notificationService
         self.taskRepository = taskRepository
+        self.calendarSyncService = calendarSyncService
     }
 
     func handleNotificationsToggleChanged() async {
@@ -62,6 +69,25 @@ final class SettingsViewModel {
 
         lastHandledNotificationsEnabled = true
         await rescheduleAllReminders()
+    }
+
+    func handleCalendarSyncToggleChanged() async {
+        let currentValue = calendarSyncEnabled
+        guard lastHandledCalendarSyncEnabled != currentValue else { return }
+
+        guard currentValue else {
+            lastHandledCalendarSyncEnabled = false
+            return
+        }
+
+        let granted = await calendarSyncService.requestAuthorization()
+        guard granted else {
+            calendarSyncEnabled = false
+            lastHandledCalendarSyncEnabled = false
+            return
+        }
+
+        lastHandledCalendarSyncEnabled = true
     }
 
     // Every existing task's reminder was cancelled the last time this toggle
